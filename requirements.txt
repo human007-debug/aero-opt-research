@@ -6,6 +6,9 @@ pytest>=8.0
 # Baselines
 pymoo>=0.6.1
 matplotlib>=3.8
+pandas>=2.2
+scikit-learn>=1.5
+periodictable>=2.0
 # torch, botorch
 # LLM-guided search
 # anthropic

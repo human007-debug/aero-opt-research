@@ -3,7 +3,7 @@
 #
 # Surrogates (all validated on held-out alloys; see data/*_validation.md):
 #   strength   GP on composition + T, trained on MPEA dataset single-phase BCC compression tests
-#   oxidation  GP on composition + T + t (+ physics descriptors), trained on the audited Gorsse et al. dataset
+#   oxidation  Bayesian ridge on composition, 1000/T, log t, trained on the audited Gorsse et al. dataset
 #   phase      logistic classifier P(single-phase BCC), trained on MPEA reported microstructures
 #   density    ideal mixing of elemental atomic volumes (RMS error 1.5% vs 27 measured alloys)
 # Outputs are PREDICTIONS for candidate alloys. They are not measured properties and need experiments.
@@ -21,13 +21,14 @@ conditions:                  # chosen where both datasets are densest (data/: 10
 
 uncertainty_calibration:     # multiply GP sd so held-out-alloy z-scores have unit RMS (from validation)
   strength: 1.33             # strength_validation.md, model ml, split alloy: rms z 1.33
-  oxidation: 1.0             # TODO: set from oxidation_validation.md (model used, split alloy)
+  oxidation: 1.12            # Bayesian ridge, base features, split alloy: rms z 1.12
 
 constraints:
   log10_mass_gain_max: 1.0   # 10 mg/cm^2 after 20 h at 1000 C (single-objective mode only)
   p_bcc_min: 0.5
-  max_sd_log_strength: 0.20  # stay inside the region the strength data inform (x1.6 in sigma)
-  max_sd_log_mass_gain: 0.50 # TODO: set from the sd distribution on known alloys
+  # Trust limits = 75th percentile of the same quantity for known alloys when held out in cross-validation
+  max_sd_log_strength: 0.166     # calibrated GP sd of log10 sigma_y
+  max_ox_distance_at_pct: 13.2   # at.% moved to the nearest oxidation-tested alloy
 
 objective:
   quantity: specific_yield_strength   # sigma_y(1000 C) / density, MPa cm^3/g

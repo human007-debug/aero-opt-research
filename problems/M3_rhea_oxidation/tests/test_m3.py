@@ -86,3 +86,39 @@ def test_mo_shear_modulus_uses_consistent_value():
 def test_strength_model_rejects_si():
     with pytest.raises(ValueError):
         pr.strength({"Nb": 0.9, "Si": 0.1}, 300)
+
+
+# ---------------------------------------------------------------- search problem
+@pytest.fixture(scope="module")
+def cfg():
+    import yaml
+    from pathlib import Path
+    return yaml.safe_load((Path(__file__).parents[1] / "problem.yaml").read_text())
+
+
+def test_normalise_drops_minor_components():
+    from problems.M3_rhea_oxidation import evaluator as ev
+    x = ev.normalise([0.5, 0.02, 0.48] + [0] * 7, 0.05)
+    assert x[1] == 0 and x.sum() == pytest.approx(1)
+
+
+def test_evaluator_on_known_alloy_is_in_trust_region(cfg):
+    from problems.M3_rhea_oxidation import evaluator as ev
+    # Cr Mo Nb Ti equimolar: tested for strength (MPEA) and close to oxidation-tested AlCrMoNbTi alloys
+    design = [0, 0.25, 0, 0.25, 0.25, 0, 0.25, 0, 0, 0]
+    r = ev.evaluate(design, cfg)
+    assert r.constraints["trust_strength"] <= 0
+    assert r.metadata["density"] == pytest.approx(pr.density({"Cr": 1, "Mo": 1, "Nb": 1, "Ti": 1}))
+    assert r.objective == pytest.approx(-r.metadata["sigma_MPa"] / r.metadata["density"])
+
+
+def test_distance_to_oxidation_data_is_zero_for_tested_alloy():
+    from problems.M3_rhea_oxidation import evaluator as ev
+    U = ev.oxidation_alloys()
+    assert ev.distance_to_oxidation_data(U[:5]).max() == pytest.approx(0, abs=1e-9)
+
+
+def test_far_composition_violates_trust(cfg):
+    from problems.M3_rhea_oxidation import evaluator as ev
+    r = ev.evaluate([0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0], cfg)  # Hf-V: not near any tested alloy
+    assert not r.feasible

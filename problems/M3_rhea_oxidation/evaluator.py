@@ -4,8 +4,10 @@ design      at. fractions of ELEMENTS (normalised inside; values below `min_frac
 objective   minimise -[ sigma_y(T) / rho ]  (specific yield strength, MPa cm^3 / g)
 constraints oxidation:   log10 mass gain (mg/cm^2) at (T_ox, t_ox) - limit <= 0
             phase:       0.5 - P(single-phase BCC) <= 0
-            trust_strength / trust_oxidation: predictive sd - max_sd <= 0  (stay where the surrogates
-                         are informed; the sd is recalibrated by the cross-validation factor)
+            trust_strength:  calibrated strength sd - max_sd_log_strength <= 0
+            trust_oxidation: distance (at.% moved) to the nearest oxidation-tested alloy - max <= 0.
+                         The Bayesian-ridge sd barely varies with extrapolation, so distance is used.
+                         Both limits = 75th percentile of the same quantity for held-out known alloys.
 metadata    predictions, their sd, density, physics-model strength (for reference)
 
 All three surrogates are data-driven and validated on held-out alloys (see data/*_validation.md).
@@ -27,9 +29,21 @@ ELEMENTS = pr.STRENGTH_ELEMENTS  # Al Cr Hf Mo Nb Ta Ti V W Zr
 
 
 @lru_cache(maxsize=1)
+def oxidation_alloys() -> np.ndarray:
+    """Distinct oxidation-tested compositions (fractions, ox.ELEMENTS order)."""
+    df = ox.load()
+    return np.unique(np.round(df[ox.ELEMENTS].to_numpy() / 100, 4), axis=0)
+
+
+def distance_to_oxidation_data(C_ox: np.ndarray) -> np.ndarray:
+    U = oxidation_alloys()
+    return np.abs(C_ox[:, None, :] - U[None, :, :]).sum(-1).min(1) * 100 / 2
+
+
+@lru_cache(maxsize=1)
 def models():
     s_model = st.fit("ml")
-    o_model, o_kind = ox.fit("gp", "physics")
+    o_model, o_kind = ox.fit("bayes_ridge", "base")
     p_model = ph.fit("logistic")
     return s_model, (o_model, o_kind), p_model
 
@@ -57,10 +71,12 @@ def predict(C: np.ndarray, config: dict[str, Any]) -> dict[str, np.ndarray]:
     Xo = ox.features(C_ox, np.full(n, cond["T_ox_C"]), np.full(n, cond["t_ox_h"]), o_kind)
     lo, lo_sd = o_model.predict(Xo, return_std=True)
     p_bcc = p_model.predict_proba(ph.descriptors(C))[:, 1]
+    d_ox = distance_to_oxidation_data(C_ox)
     rho = np.array([pr.density(c) for c in comps])
     cal = config["uncertainty_calibration"]
     return {"log_sigma": ls, "log_sigma_sd": ls_sd * cal["strength"], "sigma_MPa": 10**ls,
-            "log_mass_gain": lo, "log_mass_gain_sd": lo_sd * cal["oxidation"], "p_bcc": p_bcc, "density": rho,
+            "log_mass_gain": lo, "log_mass_gain_sd": lo_sd * cal["oxidation"], "ox_distance_at_pct": d_ox,
+            "p_bcc": p_bcc, "density": rho,
             "specific_strength": 10**ls / rho}
 
 
@@ -73,7 +89,7 @@ def evaluate(design: Sequence[float], config: dict[str, Any]):
         "oxidation": p["log_mass_gain"] - lim["log10_mass_gain_max"],
         "phase": lim["p_bcc_min"] - p["p_bcc"],
         "trust_strength": p["log_sigma_sd"] - lim["max_sd_log_strength"],
-        "trust_oxidation": p["log_mass_gain_sd"] - lim["max_sd_log_mass_gain"],
+        "trust_oxidation": p["ox_distance_at_pct"] - lim["max_ox_distance_at_pct"],
     }
     return EvalResult(objective=-p["specific_strength"], constraints=constraints,
                       feasible=all(v <= 0 for v in constraints.values()),

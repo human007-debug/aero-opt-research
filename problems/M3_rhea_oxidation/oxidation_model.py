@@ -13,6 +13,10 @@ under three splits, each repeated with different random group assignments:
   source  all rows of a publication held out (new composition and new laboratory)
 The noise floor is the pooled scatter of repeated (composition, T, t) measurements.
 
+Model choice for the search: Bayesian ridge on the base features. On held-out alloys it is the most
+accurate model tested and its intervals are close to calibrated (data/oxidation_validation.md). An ARD GP
+was also tested; it was no better on held-out alloys and far slower, so it was dropped from the study.
+
 Feature sets
   base     11 at. fractions, 1000/T (K), log10 t (h)
   physics  base + group sums of scale-forming (Al, Cr, Si), volatile / low-melting-oxide forming
@@ -30,7 +34,7 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import BayesianRidge, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -78,6 +82,7 @@ def source_groups(df: pd.DataFrame) -> np.ndarray:
 
 MODELS = {
     "ridge": lambda: make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
+    "bayes_ridge": lambda: make_pipeline(StandardScaler(), BayesianRidge()),
     "gbdt": lambda: HistGradientBoostingRegressor(max_iter=400, learning_rate=0.05, random_state=0),
     "gp": lambda: make_pipeline(StandardScaler(), GaussianProcessRegressor(
         ConstantKernel(1.0) * RBF(1.0) + WhiteKernel(0.05), normalize_y=True, random_state=0)),
@@ -85,6 +90,9 @@ MODELS = {
         ConstantKernel(1.0) * RBF(np.ones(n), length_scale_bounds=(1e-2, 1e6)) + WhiteKernel(0.05),
         normalize_y=True, random_state=0)),
 }
+
+
+PROBABILISTIC = ("gp", "gp_ard", "bayes_ridge")
 
 
 def make_model(name: str, n_features: int):
@@ -118,14 +126,14 @@ def cross_validate(df: pd.DataFrame, model: str, kind: str, split: str, repeats:
         pred, sd = np.empty_like(y), np.full_like(y, np.nan)
         for tr, te in group_folds(groups, k, rng):
             m = make_model(model, X.shape[1]).fit(X[tr], y[tr])
-            if model.startswith("gp"):
+            if model in PROBABILISTIC:
                 pred[te], sd[te] = m.predict(X[te], return_std=True)
             else:
                 pred[te] = m.predict(X[te])
         e = pred - y
         rmse.append(float(np.sqrt(np.mean(e**2))))
         r2.append(float(1 - np.mean(e**2) / np.var(y)))
-        if model.startswith("gp"):
+        if model in PROBABILISTIC:
             zz = np.abs(e) / sd
             cover90.append(float(np.mean(zz <= 1.645)))
             z.append(float(np.sqrt(np.mean(zz**2))))
@@ -144,7 +152,7 @@ def validation_study(repeats: int = 3, workers: int = 4) -> dict:
            "n_sources": int(source_groups(df).max() + 1),
            "target_std_log10": float(np.log10(df[Y_COL]).std()), "noise_floor": noise_floor(df), "results": []}
     configs = [(m, k, s) for s in ("rows", "alloy", "source") for k in ("base", "physics")
-               for m in ("ridge", "gbdt", "gp", "gp_ard")]
+               for m in ("ridge", "bayes_ridge", "gbdt", "gp")]
     with ProcessPoolExecutor(workers) as pool:
         futs = [pool.submit(cross_validate, df, m, k, s, repeats) for m, k, s in configs]
         for f in futs:
@@ -174,7 +182,7 @@ def write_report(res: dict, path_md: Path):
     path_md.write_text("\n".join(lines) + "\n")
 
 
-def fit(model: str = "gp", kind: str = "physics", df: pd.DataFrame | None = None):
+def fit(model: str = "bayes_ridge", kind: str = "base", df: pd.DataFrame | None = None):
     """Fit on the full cleaned dataset; returns (model, kind)."""
     df = load() if df is None else df
     X, y = xy(df, kind)
