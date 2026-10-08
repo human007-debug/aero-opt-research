@@ -1,0 +1,30 @@
+# Sensitivity of the 1995 GA reproduction (MULT) to the (unspecified) initial population:
+# thickness drawn uniformly from 4-64 plies instead of centred on 48.
+name: c1m_mult_lrh95_init
+problem: C1M_min_thickness
+overrides:
+  loads:
+    case: MULT
+budget: 6000
+seeds:
+- 0
+- 200
+stop_on_success: true
+optimizers:
+  lrh95_new_uthick:
+    module: baselines.lrh95_ga
+    params:
+      variant: new
+      init: uniform_thickness
+  lrh95_old_uthick:
+    module: baselines.lrh95_ga
+    params:
+      variant: old
+      init: uniform_thickness
+success:
+  feasible: true
+  objective_max: 48
+  metadata_min:
+    lambda_cr: 1.0057112499446699
+reference_price:
+  paper new GA: 3250

@@ -16,6 +16,7 @@ pytest
 |---|---|---|---|---|
 | C1 buckling stacking | CLT + closed-form SS-plate buckling + max-strain | passing | **yes**: Le Riche & Haftka (1995). Exhaustive enumeration of all 3^12 designs matches the best 44/48-ply λcr and all four Table 2 optima | unblocked |
 | C2 tow-steered plate | Two-step Rayleigh-Ritz: in-plane prebuckling on the quarter plate, then buckling | passing | **yes**: Gürdal, Tatting & Wu (2008). Case II-a ⟨0\|75⟩ = 3.144 (paper 3.14), I-b ⟨0\|50⟩ = 1.437 (1.44), straight optima, stiffnesses and optimum locations | unblocked |
+| C1M minimum thickness | C1 physics, 1995 formulation (empty stacks, ply count minimised) | passing | reproduction of the 1995 GA in progress: price LC1 361 / LC2 1164 / LC3 1144 (paper 440 / 1180 / 1490); MULT not reproduced (reliability 0.745 at 6000, paper 1.00) | baseline |
 | A2 lift distribution | Lifting line, Fourier circulation | passing | reproduces the closed-form bell optimum (b/b0 = sqrt(3/2), D/D_ell = 8/9). Attribution to Prandtl (1933) still to verify from source | unblocked |
 
 **A2 note.** With only the integrated bending-moment constraint the problem is ill-posed. Negative tip loading beats the bell, and the bell is just a stationary inflection point. `nonnegative_lift: true` (the default) makes the bell the optimum. The root-bending-moment variant has a different optimum that uses all odd harmonics, and it has no verified reference yet.

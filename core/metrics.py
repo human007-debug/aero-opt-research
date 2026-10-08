@@ -45,3 +45,43 @@ def price(curves: np.ndarray, target: float, level: float = 0.8) -> float:
 def target_from_optimum(opt_objective: float, rel_tol: float) -> float:
     """Objective threshold for a practical optimum (objectives are minimised)."""
     return opt_objective + abs(opt_objective) * rel_tol
+
+
+def make_success(spec: dict):
+    """Success predicate from an experiment's `success:` block, applied to a logged record:
+        feasible: true            -> record must be feasible
+        objective_max: v          -> objective <= v
+        metadata_min: {key: v}    -> metadata[key] >= v
+        metadata_max: {key: v}    -> metadata[key] <= v
+    """
+    def ok(rec: dict) -> bool:
+        if spec.get("feasible", True) and not rec["feasible"]:
+            return False
+        if "objective_max" in spec and rec["objective"] > spec["objective_max"]:
+            return False
+        md = rec.get("metadata", {})
+        if any(md.get(k, -np.inf) < v for k, v in spec.get("metadata_min", {}).items()):
+            return False
+        if any(md.get(k, np.inf) > v for k, v in spec.get("metadata_max", {}).items()):
+            return False
+        return True
+    return ok
+
+
+def run_hit_time(run_dir: Path, success) -> float:
+    """1-based evaluation count of the first successful record (inf if none)."""
+    for i, rec in enumerate(read_evaluations(run_dir), 1):
+        if success(rec):
+            return float(i)
+    return float("inf")
+
+
+def reliability_from_hits(hits: np.ndarray, budget: int) -> np.ndarray:
+    n = np.arange(1, budget + 1)
+    return (hits[:, None] <= n[None, :]).mean(0)
+
+
+def price_from_hits(hits: np.ndarray, budget: int, level: float = 0.8) -> float:
+    rel = reliability_from_hits(hits, budget)
+    idx = np.flatnonzero(rel >= level)
+    return float(idx[0] + 1) if len(idx) else float("inf")

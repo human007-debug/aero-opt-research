@@ -1,0 +1,41 @@
+# C1M — Minimum-thickness laminate (Le Riche & Haftka 1995 formulation)
+# Same plate, material, load cases, strength and contiguity rules as C1 (verified there).
+#
+# Source: Le Riche, R. & Haftka, R. T. (1995). Improved genetic algorithm for minimum thickness
+# composite laminate design. Composites Engineering 5(2), 143-161. (copy supplied by the user)
+
+id: C1M_min_thickness
+base_problem: C1_buckling_stacking
+
+loads:
+  case: LC1                  # LC1, LC2, LC3 or MULT
+
+design:
+  # p.154: maximum thickness 64 plies, string length 64/4 = 16. Each digit codes a 2-ply stack of the
+  # half laminate (outer -> mid-plane): 0 = E (empty), 1 = 0_2, 2 = +-45, 3 = 90_2.
+  # Empty stacks are removed to form the laminate (p.145), so N = 4 x (number of non-empty digits).
+  string_length: 16
+  n_values: 4
+  empty_code: 0
+
+constraints:
+  feasibility_delta: 0.005   # p.155: lambda_cr >= 1 - delta counts as feasible
+
+objective:
+  quantity: number_of_plies
+  sense: minimize
+
+benchmark:
+  verified: true
+  reference: "Le Riche & Haftka (1995), Composites Engineering 5(2), 143-161"
+  # p.154: a practical optimum is an optimal-weight design (48 plies, all cases) with lambda_cr
+  # within 0.1% of the global optimum. Global optima: problems/C1_buckling_stacking/reference_optima.yaml
+  optimal_plies: 48
+  practical_optimum_rel: 1.0e-3
+  # Price of the search (analyses for 80% reliability), 200 runs, stopped after 6000 analyses.
+  # New GA without scaling mutation: Table 3 (S = 1), Table 6-10 reference rows; p.155-156.
+  price_new_ga: {LC1: 440, LC2: 1180, LC3: 1490, MULT: 3250, average: 1450}
+  reliability_new_ga_at_6000: {LC1: 1.00, LC2: 1.00, LC3: 0.94, MULT: 1.00}
+  price_new_ga_90pct_interval: {LC1: [426, 454], LC2: [1109, 1251], LC3: [1384, 1596], MULT: [2998, 3502], average: [1315, 1585]}
+  # Old GA (Le Riche & Haftka 1993 / Kogiso et al. 1994b settings), average over the four cases (p.155).
+  price_old_ga_average: 3300

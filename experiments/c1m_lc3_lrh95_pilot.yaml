@@ -1,0 +1,27 @@
+# Pilot (LC3): 20 runs to time the full experiment.
+name: c1m_lc3_lrh95_pilot
+problem: C1M_min_thickness
+overrides:
+  loads:
+    case: LC3
+budget: 6000
+seeds:
+- 0
+- 20
+stop_on_success: true
+optimizers:
+  lrh95_new:
+    module: baselines.lrh95_ga
+    params:
+      variant: new
+  lrh95_old:
+    module: baselines.lrh95_ga
+    params:
+      variant: old
+success:
+  feasible: true
+  objective_max: 48
+  metadata_min:
+    lambda_cr: 1.019204141112535
+reference_price:
+  paper new GA: 1490

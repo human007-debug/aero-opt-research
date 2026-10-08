@@ -1,0 +1,27 @@
+# Reproduction of Le Riche & Haftka (1995): LC1, 200 runs x 6000 analyses (paper protocol, p.154).
+name: c1m_lc1_lrh95
+problem: C1M_min_thickness
+overrides:
+  loads:
+    case: LC1
+budget: 6000
+seeds:
+- 0
+- 200
+stop_on_success: true
+optimizers:
+  lrh95_new:
+    module: baselines.lrh95_ga
+    params:
+      variant: new
+  lrh95_old:
+    module: baselines.lrh95_ga
+    params:
+      variant: old
+success:
+  feasible: true
+  objective_max: 48
+  metadata_min:
+    lambda_cr: 1.0388570734488884
+reference_price:
+  paper new GA: 440

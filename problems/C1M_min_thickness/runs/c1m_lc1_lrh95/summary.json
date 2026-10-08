@@ -1,0 +1,24 @@
+{
+  "experiment": "c1m_lc1_lrh95",
+  "problem": "C1M_min_thickness",
+  "budget": 6000,
+  "optimizers": {
+    "lrh95_new": {
+      "runs": 200,
+      "price_80": 361.0,
+      "reliability_at_budget": 1.0,
+      "median_hit": 227.5,
+      "evaluations_total": 52222
+    },
+    "lrh95_old": {
+      "runs": 200,
+      "price_80": 452.0,
+      "reliability_at_budget": 1.0,
+      "median_hit": 251.5,
+      "evaluations_total": 60981
+    }
+  },
+  "reference_price": {
+    "paper new GA": 440
+  }
+}

@@ -51,3 +51,23 @@ def reliability_plot(curves_by_opt: dict[str, np.ndarray], target: float, path: 
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
+
+
+def reliability_from_hits_plot(hits_by_opt: dict[str, np.ndarray], budget: int, path: Path, title: str = "",
+                               reference: dict[str, float] | None = None):
+    from .metrics import reliability_from_hits
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    for name, h in hits_by_opt.items():
+        ax.plot(np.arange(1, budget + 1), reliability_from_hits(h, budget), label=f"{name} ({len(h)} runs)")
+    for name, price in (reference or {}).items():
+        ax.plot([price], [0.8], "kx", ms=8)
+        ax.annotate(f"{name}: {price:g}", (price, 0.8), textcoords="offset points", xytext=(4, -12), fontsize=8)
+    ax.axhline(0.8, color="k", ls=":", lw=1)
+    ax.set_xlabel("analyses")
+    ax.set_ylabel("reliability (fraction of runs at a practical optimum)")
+    ax.set_ylim(0, 1.02)
+    ax.set_title(title)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)

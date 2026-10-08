@@ -21,6 +21,10 @@ class BudgetExhausted(Exception):
     pass
 
 
+class TargetReached(BudgetExhausted):
+    """Raised after the first evaluation that satisfies the experiment's success criterion."""
+
+
 def deep_update(base: dict, overrides: dict) -> dict:
     out = copy.deepcopy(base)
     for k, v in (overrides or {}).items():
@@ -42,8 +46,11 @@ class Problem:
 
 
 class BudgetedEvaluator:
-    def __init__(self, problem: Problem, budget: int, logger: EvalLogger | None = None):
+    def __init__(self, problem: Problem, budget: int, logger: EvalLogger | None = None,
+                 success: Callable[[dict], bool] | None = None, stop_on_success: bool = False):
         self.problem, self.budget, self.logger = problem, budget, logger
+        self.success, self.stop_on_success = success, stop_on_success
+        self.hit_at: int | None = None  # evaluation count at the first success
         self.n_evals = 0
         self.best: tuple[Any, EvalResult] | None = None  # best feasible
 
@@ -63,17 +70,26 @@ class BudgetedEvaluator:
             self.logger.log(design, result, dt, source)
         if result.feasible and (self.best is None or result.objective < self.best[1].objective):
             self.best = (design, result)
+        if self.success and self.hit_at is None and self.success(result.to_dict()):
+            self.hit_at = self.n_evals
+            if self.stop_on_success:
+                raise TargetReached
         return result
 
 
 def run(problem: Problem, optimizer: Callable, budget: int, seed: int, run_dir: Path,
-        optimizer_name: str = "", params: dict | None = None, overrides: dict | None = None) -> BudgetedEvaluator:
-    """Run one optimizer for one seed. Every evaluation is logged under run_dir."""
+        optimizer_name: str = "", params: dict | None = None, overrides: dict | None = None,
+        success: Callable[[dict], bool] | None = None, stop_on_success: bool = False) -> BudgetedEvaluator:
+    """Run one optimizer for one seed. Every evaluation is logged under run_dir.
+
+    With stop_on_success the run ends at the first successful evaluation; reliability and price
+    depend only on that first-hit time, so later evaluations would not change them.
+    """
     rng = seed_everything(seed)
     info = {"problem": problem.id, "overrides": overrides or {}, "optimizer": optimizer_name,
-            "params": params or {}, "budget": budget, "seed": seed}
+            "params": params or {}, "budget": budget, "seed": seed, "stop_on_success": stop_on_success}
     with EvalLogger(run_dir, info) as log:
-        f = BudgetedEvaluator(problem, budget, log)
+        f = BudgetedEvaluator(problem, budget, log, success, stop_on_success)
         try:
             optimizer(f, problem.space, rng, **(params or {}))
         except BudgetExhausted:
