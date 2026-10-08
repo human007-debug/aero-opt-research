@@ -1,0 +1,21 @@
+# A2: classical baselines vs the closed-form bell optimum.
+name: a2_baselines
+problem: A2_lift_distribution
+budget: 2000
+seeds:
+- 0
+- 25
+optimizers:
+  random:
+    module: baselines.random_search
+  ga:
+    module: baselines.ga
+    params:
+      pop_size: 50
+  slsqp:
+    module: baselines.local
+optimum:
+  objective: 0.8888888888888888
+  rel_tol: 0.001
+  source: closed form (tests/test_benchmark.py)
+plot_label: best feasible induced drag ratio D/D_ell

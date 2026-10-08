@@ -1,0 +1,24 @@
+{
+  "experiment": "c1_lc1_baselines",
+  "problem": "C1_buckling_stacking",
+  "budget": 3000,
+  "optimizers": {
+    "random": {
+      "runs": 25,
+      "final_best_median": -1.039896970419307,
+      "final_best_min": -1.0398969704193073,
+      "final_best_max": -1.0203089318536318,
+      "price_80": Infinity,
+      "reliability_at_budget": 0.52
+    },
+    "ga": {
+      "runs": 25,
+      "final_best_median": -1.0398969704193073,
+      "final_best_min": -1.0398969704193077,
+      "final_best_max": -1.0398969704193073,
+      "price_80": 350.0,
+      "reliability_at_budget": 1.0
+    }
+  },
+  "target_objective": -1.0388570734488884
+}

@@ -205,3 +205,9 @@ def evaluate(design: Sequence[float], config: dict[str, Any]) -> EvalResult:
         metadata={k: r[k] for k in ("buckling_load", "normalised_load", "normalised_stiffness", "lambda", "axial_stiffness",
                                     "section_force_spread", "max_steering_curvature")},
     )
+
+
+def search_space(config: dict[str, Any]) -> dict[str, Any]:
+    bd = config["design"]["bounds"]
+    return {"type": "continuous", "lower": [bd["T0"][0], bd["T1"][0]], "upper": [bd["T0"][1], bd["T1"][1]],
+            "x0": [45.0, 45.0]}

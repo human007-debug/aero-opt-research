@@ -122,11 +122,15 @@ def evaluate(design: Sequence[int], config: dict[str, Any]) -> EvalResult:
             "failure_mode": "buckling" if lam_b <= lam_s else "strain",
             "buckling_mode_mn": mode,
             "max_contiguous_run": run,
-            "angles": angles,
             "D16_over_D11": float(D[0, 2] / D[0, 0]),
             "D26_over_D22": float(D[1, 2] / D[1, 1]),
         },
     )
+
+
+def search_space(config: dict[str, Any]) -> dict[str, Any]:
+    n = config["design"]["n_plies_total"] // 4
+    return {"type": "categorical", "n_vars": n, "n_values": len(config["design"]["stack_alphabet"])}
 
 
 # ---------------------------------------------------------------- batch (exhaustive enumeration)

@@ -1,0 +1,32 @@
+{
+  "experiment": "a2_baselines",
+  "problem": "A2_lift_distribution",
+  "budget": 2000,
+  "optimizers": {
+    "random": {
+      "runs": 25,
+      "final_best_median": Infinity,
+      "final_best_min": Infinity,
+      "final_best_max": Infinity,
+      "price_80": Infinity,
+      "reliability_at_budget": 0.0
+    },
+    "ga": {
+      "runs": 25,
+      "final_best_median": 2.6202633579333914,
+      "final_best_min": 1.0707145925179284,
+      "final_best_max": 10.413865231341923,
+      "price_80": Infinity,
+      "reliability_at_budget": 0.0
+    },
+    "slsqp": {
+      "runs": 25,
+      "final_best_median": 0.8888888898181019,
+      "final_best_min": 0.8888888891931405,
+      "final_best_max": 0.8888888898181019,
+      "price_80": 143.0,
+      "reliability_at_budget": 1.0
+    }
+  },
+  "target_objective": 0.8897777777777778
+}

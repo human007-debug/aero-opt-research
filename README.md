@@ -20,6 +20,17 @@ pytest
 
 **A2 note.** With only the integrated bending-moment constraint the problem is ill-posed. Negative tip loading beats the bell, and the bell is just a stationary inflection point. `nonnegative_lift: true` (the default) makes the bell the optimum. The root-bending-moment variant has a different optimum that uses all odd harmonics, and it has no verified reference yet.
 
+## Running experiments
+
+```bash
+python -m core.run experiments/c1_lc1_baselines.yaml          # all optimizers x seeds, equal budget
+python -m core.run experiments/c1_lc1_baselines.yaml --report-only
+```
+
+Each optimizer sees the problem only through `core.search.BudgetedEvaluator`, which enforces the budget and logs every evaluation. Per-seed logs stay local. `summary.json`, `convergence.png` and `reliability.png` are committed.
+
+Metrics follow Le Riche & Haftka (1995). A *practical optimum* is a feasible design within 0.1% of the global optimum. *Reliability(n)* is the fraction of runs that have found one within n evaluations. *Price* is the n at which reliability reaches 80%.
+
 ## Conventions
 
 - Evaluators minimise. Maximisation problems return the negated quantity.

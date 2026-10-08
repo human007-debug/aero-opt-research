@@ -2,6 +2,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
-# Run outputs are kept locally; commit only curated results.
-problems/*/runs/*
-!problems/*/runs/.gitkeep
+# Per-seed run logs stay local; experiment summaries and plots are committed.
+problems/*/runs/*/*/

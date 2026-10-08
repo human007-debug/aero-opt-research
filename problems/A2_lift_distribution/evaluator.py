@@ -89,3 +89,11 @@ def evaluate(design: Sequence[float], config: dict[str, Any]) -> EvalResult:
             "integrated_moment_ratio": res["integrated_moment"] / ref["integrated_moment"],
         },
     )
+
+
+def search_space(config: dict[str, Any]) -> dict[str, Any]:
+    K = config["design"]["n_harmonics"]
+    bd = config["design"]["bounds"]
+    lo = [bd["span_ratio"][0]] + [bd["harmonic_ratio"][0]] * K
+    hi = [bd["span_ratio"][1]] + [bd["harmonic_ratio"][1]] * K
+    return {"type": "continuous", "lower": lo, "upper": hi, "x0": [1.0] + [0.0] * K}

@@ -1,0 +1,71 @@
+plies: 48
+method: exhaustive enumeration of all 3^12 stack sequences
+cases:
+  LC1:
+    lambda_cr: 1.0398969704193077
+    genes:
+    - 1
+    - 0
+    - 1
+    - 1
+    - 1
+    - 1
+    - 0
+    - 1
+    - 0
+    - 0
+    - 2
+    - 0
+    n_practical_optima_0.1pct: 175
+    n_contiguity_feasible: 243569
+  LC2:
+    lambda_cr: 1.0143021831266525
+    genes:
+    - 1
+    - 1
+    - 2
+    - 1
+    - 1
+    - 1
+    - 0
+    - 1
+    - 0
+    - 0
+    - 1
+    - 0
+    n_practical_optima_0.1pct: 3
+    n_contiguity_feasible: 243569
+  LC3:
+    lambda_cr: 1.020224365478013
+    genes:
+    - 2
+    - 1
+    - 1
+    - 2
+    - 1
+    - 2
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    n_practical_optima_0.1pct: 17
+    n_contiguity_feasible: 243569
+  MULT:
+    lambda_cr: 1.0067179679125824
+    genes:
+    - 2
+    - 2
+    - 1
+    - 1
+    - 1
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 2
+    - 0
+    n_practical_optima_0.1pct: 4
+    n_contiguity_feasible: 243569
