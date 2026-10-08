@@ -1,0 +1,41 @@
+# A2 — Spanwise lift distribution minimising induced drag under a bending-moment constraint
+# Classical lifting-line theory (planar, flat wake), symmetric loading.
+#
+# Nondimensionalisation: rho*V^2 = 1, reference span b0 = 1, total lift L = 1.
+# Reference design: elliptic loading on span b0 (design = [1, 0, 0, ...]).
+
+id: A2_lift_distribution
+units: nondimensional
+
+design:
+  # x = [b/b0, A3/A1, A5/A1, ..., A_(2K+1)/A1]
+  # Gamma(theta) = 2 b V sum_n A_n sin(n theta), y = -(b/2) cos(theta); odd n only (symmetric).
+  # A1 is not a variable: it is fixed by the lift constraint, A1 = 2 / (pi b^2).
+  n_harmonics: 10            # number of odd harmonics beyond A1 (A3 .. A21)
+  bounds:
+    span_ratio: [0.5, 2.0]
+    harmonic_ratio: [-1.0, 1.0]
+
+constraints:
+  # 'integrated': span-integrated bending moment  W = int_0^{b/2} M(y) dy  (proxy for spar weight)
+  # 'root':       root bending moment M(0)
+  # Constraint: moment / moment_of_reference_design - 1 <= 0
+  bending_moment: integrated
+  # Required for a well-posed problem. Without it, negative tip loading lets drag keep falling
+  # until the span hits its upper bound (e.g. A3/A1 = -0.5, b/b0 = sqrt(2) gives D/D_ell = 0.875 < 8/9),
+  # and the bell is only a stationary point: along the moment constraint dD/da = (3a + 1)^2 >= 0.
+  nonnegative_lift: true     # Gamma(y) >= 0 along the span, checked at cosine-spaced stations
+
+objective:
+  quantity: induced_drag_ratio   # D_i / D_i(elliptic, b0)
+  sense: minimize
+
+benchmark:
+  # Prandtl's 1933 result is for the INTEGRATED bending-moment constraint. With that constraint
+  # the lifting-line optimum is derived in closed form (see tests/test_benchmark.py):
+  #   Gamma ~ (1 - eta^2)^(3/2),  A3/A1 = -1/3,  b/b0 = sqrt(3/2),  D/D_ell = 8/9.
+  reference: "Prandtl, L. (1933). TODO: verify from source (full citation; title, venue, pages)"
+  cited_values_verified: false   # TODO: verify from source that Prandtl's paper reports these values
+  tolerance_rel: 1.0e-6
+  # The ROOT bending-moment variant is a different problem with a different optimum.
+  root_moment_reference: "TODO: identify published source for the root-bending-moment optimum"

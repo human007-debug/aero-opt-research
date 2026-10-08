@@ -15,6 +15,9 @@ pytest
 | Problem | Evaluator | Physics tests | Benchmark reproduced | Search |
 |---|---|---|---|---|
 | C1 buckling stacking | CLT + closed-form SS-plate buckling | passing | **no**: values in `problem.yaml` need verifying against Le Riche & Haftka (1993) | blocked |
+| A2 lift distribution | Lifting line, Fourier circulation | passing | reproduces the closed-form bell optimum (b/b0 = sqrt(3/2), D/D_ell = 8/9). Attribution to Prandtl (1933) still to verify from source | unblocked |
+
+**A2 note.** With only the integrated bending-moment constraint the problem is ill-posed. Negative tip loading beats the bell, and the bell is just a stationary inflection point. `nonnegative_lift: true` (the default) makes the bell the optimum. The root-bending-moment variant has a different optimum that uses all odd harmonics, and it has no verified reference yet.
 
 ## Conventions
 
