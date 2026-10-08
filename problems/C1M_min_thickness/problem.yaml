@@ -39,3 +39,9 @@ benchmark:
   price_new_ga_90pct_interval: {LC1: [426, 454], LC2: [1109, 1251], LC3: [1384, 1596], MULT: [2998, 3502], average: [1315, 1585]}
   # Old GA (Le Riche & Haftka 1993 / Kogiso et al. 1994b settings), average over the four cases (p.155).
   price_old_ga_average: 3300
+
+# Reproduction status of the 1995 new GA (baselines/lrh95_ga.py, 200 runs, uniform-thickness start):
+#   price LC1 425 (paper 440, 90% interval 426-454), LC2 1178 (1180, 1109-1251): reproduced.
+#   LC3 908 (1490, 1384-1596): our GA is cheaper. MULT reliability 0.72 at 6000 (paper 1.00, price 3250):
+#   not reproduced; failed runs stall on 48-ply designs ~0.17% below the optimum that differ from it in
+#   composition. TODO: verify operator details from Le Riche & Haftka (1993), AIAA J. 31(5), 951-970.

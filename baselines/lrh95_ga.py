@@ -21,10 +21,11 @@ Assumptions where the paper is not explicit (flagged so they can be checked agai
     the two extremities of the central substring are then flipped about the center point").
     TODO: verify from source (Le Riche & Haftka 1993, AIAA J. 31(5)); the Fig. 5 scan is not legible
     enough to confirm.
-  - The initial population is not described. init="uniform_digits" (default) draws each digit uniformly
-    from {E, 0_2, +-45, 90_2}, so starting thicknesses are Binomial(16, 3/4) stacks (mean 48 plies, the
-    optimal thickness for all four load cases). init="uniform_thickness" draws the number of full stacks
-    uniformly from 1..16 (4 to 64 plies) and the orientations uniformly.
+  - The initial population is not described. init="uniform_thickness" (default) draws the number of full
+    stacks uniformly from 1..16 (4 to 64 plies) and the orientations uniformly. init="uniform_digits" draws
+    each digit uniformly from {E, 0_2, +-45, 90_2}, which centres starting designs on 48 plies (the optimal
+    thickness) and gives an unearned head start. uniform_thickness reproduces the paper's LC1 and LC2
+    prices within its 90% intervals (experiments/c1m_*_lrh95_init.yaml).
   - Each new child is one analysis. The cloned elite is not re-analysed.
 """
 from __future__ import annotations
@@ -39,7 +40,7 @@ VARIANTS = {
     "old": dict(selection="rank", crossover="X2", mutation="old", permutation="invert",
                 p_mut=0.01, p_perm=1.0, Pl=2.0, S=0.0),
 }
-COMMON = dict(pop_size=8, Pc=math.sqrt(10 / 9), delta=0.005, eps=6.0, init="uniform_digits")
+COMMON = dict(pop_size=8, Pc=math.sqrt(10 / 9), delta=0.005, eps=6.0, init="uniform_thickness")
 
 
 def phi(result, Pc: float, Pl: float, S: float, delta: float, eps: float) -> float:

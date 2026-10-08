@@ -129,8 +129,8 @@ def test_ga_runs_with_exact_budget_and_is_reproducible(tmp_path, variant):
 
 def test_initial_population_options():
     space = ev.search_space(CFG)
-    g1 = ga.LRH95GA(None, space, np.random.default_rng(0), "new")
-    g2 = ga.LRH95GA(None, space, np.random.default_rng(0), "new", init="uniform_thickness")
+    g1 = ga.LRH95GA(None, space, np.random.default_rng(0), "new", init="uniform_digits")
+    g2 = ga.LRH95GA(None, space, np.random.default_rng(0), "new")  # default: uniform_thickness
     n1 = [len(g1.full(g1.random_string())) for _ in range(4000)]
     n2 = [len(g2.full(g2.random_string())) for _ in range(4000)]
     assert abs(np.mean(n1) - 12) < 0.2          # Binomial(16, 3/4): mean 12 stacks = 48 plies
