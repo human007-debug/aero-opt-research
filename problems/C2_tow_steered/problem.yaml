@@ -1,0 +1,60 @@
+# C2 — Tow-steered (variable-angle-tow) plate: maximise buckling load
+# Rectangular plate, uniform end-shortening along x, simply supported out-of-plane.
+#
+# STATUS: evaluator under construction; benchmark NOT yet reproduced.
+
+id: C2_tow_steered
+units: SI
+
+material:
+  verified: false            # TODO: verify from source (material used in the linear-variation benchmark papers)
+  E1: 127.59e+9              # placeholder: same as C1
+  E2: 13.03e+9
+  G12: 6.41e+9
+  nu12: 0.3
+  ply_thickness: 1.27e-4
+
+plate:
+  verified: false            # TODO: verify from source (benchmark plate size and ply count)
+  a: 0.508                   # length along x (loading direction)
+  b: 0.508                   # width along y
+
+layup:
+  # Laminate built from the half-stack (outer -> mid-plane), mirrored about the mid-plane.
+  # Each entry is one steered layer pair  +<T0|T1>, -<T0|T1>  (balanced).
+  # Linear angle variation (Gurdal-Olmedo style, TODO: verify the exact definition from source):
+  #   theta(r) = phi + T0 + (T1 - T0) * |r| / d
+  # r = x for variation_axis 'x' (along the load), r = y for 'y' (across the load);
+  # d = a/2 or b/2. Angles are in degrees.
+  variation_axis: y
+  phi: 0.0
+  n_layer_pairs_half: 6      # TODO: verify from source; total plies = 4 * n_layer_pairs_half
+
+design:
+  # x = [T0, T1] shared by every steered layer pair (first study). Degrees.
+  bounds:
+    T0: [-90.0, 90.0]
+    T1: [-90.0, 90.0]
+
+boundary_conditions:
+  out_of_plane: simply_supported_all_edges
+  loaded_edges: uniform_end_shortening   # u = -/+ Delta/2 at x = +/- a/2; v free (shear-free)
+  transverse_edges: free                 # in-plane traction-free at y = +/- b/2. TODO: add 'straight'
+
+discretisation:
+  prebuckling_legendre_degree: 10   # u, v Ritz polynomial degree in each direction
+  buckling_sine_terms: 10           # m, n = 1..M for w
+  quadrature_points: 40             # Gauss-Legendre points per direction
+
+constraints:
+  min_steering_radius: 0.635        # m. TODO: verify from source (machine/tow-width dependent)
+
+objective:
+  quantity: buckling_load            # total compressive force at buckling, N
+  sense: maximize
+
+benchmark:
+  reference: "Gurdal & Olmedo (1993) in-plane response; Gurdal, Tatting & Wu (2008) buckling. TODO: verify full citations and which paper holds the buckling tables"
+  verified: false
+  tolerance_rel: 1.0e-2
+  cases: []                          # TODO: verify from source — {layup, T0, T1, normalised buckling load}

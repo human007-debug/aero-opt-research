@@ -14,50 +14,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
+from core.laminate import abd_matrices, reduced_stiffness, transformed_stiffness  # noqa: F401
 from core.problem import EvalResult
-
-
-# ---------------------------------------------------------------- laminate theory
-
-def reduced_stiffness(E1: float, E2: float, G12: float, nu12: float) -> np.ndarray:
-    nu21 = nu12 * E2 / E1
-    d = 1.0 - nu12 * nu21
-    return np.array([
-        [E1 / d, nu12 * E2 / d, 0.0],
-        [nu12 * E2 / d, E2 / d, 0.0],
-        [0.0, 0.0, G12],
-    ])
-
-
-def transformed_stiffness(Q: np.ndarray, theta_deg: float) -> np.ndarray:
-    t = np.radians(theta_deg)
-    c, s = np.cos(t), np.sin(t)
-    Q11, Q12, Q22, Q66 = Q[0, 0], Q[0, 1], Q[1, 1], Q[2, 2]
-    c2, s2, c4, s4 = c * c, s * s, c**4, s**4
-    Qb11 = Q11 * c4 + 2 * (Q12 + 2 * Q66) * s2 * c2 + Q22 * s4
-    Qb22 = Q11 * s4 + 2 * (Q12 + 2 * Q66) * s2 * c2 + Q22 * c4
-    Qb12 = (Q11 + Q22 - 4 * Q66) * s2 * c2 + Q12 * (s4 + c4)
-    Qb66 = (Q11 + Q22 - 2 * Q12 - 2 * Q66) * s2 * c2 + Q66 * (s4 + c4)
-    Qb16 = (Q11 - Q12 - 2 * Q66) * s * c**3 + (Q12 - Q22 + 2 * Q66) * s**3 * c
-    Qb26 = (Q11 - Q12 - 2 * Q66) * s**3 * c + (Q12 - Q22 + 2 * Q66) * s * c**3
-    return np.array([
-        [Qb11, Qb12, Qb16],
-        [Qb12, Qb22, Qb26],
-        [Qb16, Qb26, Qb66],
-    ])
-
-
-def abd_matrices(angles: Sequence[float], Q: np.ndarray, t_ply: float):
-    """A, B, D for a laminate listed from the top surface (z = -h/2) downward."""
-    n = len(angles)
-    z = np.linspace(-n * t_ply / 2, n * t_ply / 2, n + 1)
-    A = np.zeros((3, 3)); B = np.zeros((3, 3)); D = np.zeros((3, 3))
-    for k, th in enumerate(angles):
-        Qb = transformed_stiffness(Q, th)
-        A += Qb * (z[k + 1] - z[k])
-        B += Qb * (z[k + 1] ** 2 - z[k] ** 2) / 2
-        D += Qb * (z[k + 1] ** 3 - z[k] ** 3) / 3
-    return A, B, D
 
 
 # ---------------------------------------------------------------- design encoding
