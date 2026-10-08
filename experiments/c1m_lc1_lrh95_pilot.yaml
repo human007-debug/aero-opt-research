@@ -1,4 +1,5 @@
 # Pilot (LC1): 20 runs to time the full experiment.
+# init pinned to uniform_digits: the setting these stored results were produced with.
 name: c1m_lc1_lrh95_pilot
 problem: C1M_min_thickness
 overrides:
@@ -14,10 +15,12 @@ optimizers:
     module: baselines.lrh95_ga
     params:
       variant: new
+      init: uniform_digits
   lrh95_old:
     module: baselines.lrh95_ga
     params:
       variant: old
+      init: uniform_digits
 success:
   feasible: true
   objective_max: 48

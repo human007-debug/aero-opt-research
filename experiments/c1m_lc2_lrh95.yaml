@@ -1,4 +1,5 @@
 # Reproduction of Le Riche & Haftka (1995): LC2, 200 runs x 6000 analyses (paper protocol, p.154).
+# init pinned to uniform_digits: the setting these stored results were produced with.
 name: c1m_lc2_lrh95
 problem: C1M_min_thickness
 overrides:
@@ -14,10 +15,12 @@ optimizers:
     module: baselines.lrh95_ga
     params:
       variant: new
+      init: uniform_digits
   lrh95_old:
     module: baselines.lrh95_ga
     params:
       variant: old
+      init: uniform_digits
 success:
   feasible: true
   objective_max: 48
