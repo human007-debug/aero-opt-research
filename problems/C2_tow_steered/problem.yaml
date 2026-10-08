@@ -1,60 +1,78 @@
 # C2 — Tow-steered (variable-angle-tow) plate: maximise buckling load
 # Rectangular plate, uniform end-shortening along x, simply supported out-of-plane.
 #
-# STATUS: evaluator under construction; benchmark NOT yet reproduced.
+# Source of all data marked `verified: true`:
+#   Gurdal, Z., Tatting, B. F. & Wu, C. K. (2008). Variable stiffness composite panels: Effects of
+#   stiffness variation on the in-plane and buckling response. Composites Part A 39, 911-922.
+#   (copy supplied by the user)
 
 id: C2_tow_steered
-units: SI
+units: imperial   # psi, in. Benchmark results are non-dimensional.
 
 material:
-  verified: false            # TODO: verify from source (material used in the linear-variation benchmark papers)
-  E1: 127.59e+9              # placeholder: same as C1
-  E2: 13.03e+9
-  G12: 6.41e+9
-  nu12: 0.3
-  ply_thickness: 1.27e-4
+  verified: true             # p.916-917
+  E1: 26.25e+6
+  E2: 1.49e+6
+  G12: 1.04e+6
+  nu12: 0.28
+  ply_thickness: 0.005
 
 plate:
-  verified: false            # TODO: verify from source (benchmark plate size and ply count)
-  a: 0.508                   # length along x (loading direction)
-  b: 0.508                   # width along y
+  verified: true             # square panels, a/b = 1 (p.918). Absolute size is not given and
+  a: 10.0                    # cancels in the normalised results; 10 in is an arbitrary choice.
+  b: 10.0
 
 layup:
-  # Laminate built from the half-stack (outer -> mid-plane), mirrored about the mid-plane.
-  # Each entry is one steered layer pair  +<T0|T1>, -<T0|T1>  (balanced).
-  # Linear angle variation (Gurdal-Olmedo style, TODO: verify the exact definition from source):
-  #   theta(r) = phi + T0 + (T1 - T0) * |r| / d
-  # r = x for variation_axis 'x' (along the load), r = y for 'y' (across the load);
-  # d = a/2 or b/2. Angles are in degrees.
+  # [phi +- <T0|T1>]_3s : 12 layers, mirrored about the mid-plane (p.916).
+  # theta(x') = phi + (T1 - T0) |x'| / d + T0   (Eq. 2), x' along phi, d = a/2 or b/2.
+  # Case I : theta = theta(x), phi = 0   -> variation_axis x, phi 0
+  # Case II: theta = theta(y), phi = 90  -> variation_axis y, phi 90
+  verified: true
   variation_axis: y
-  phi: 0.0
-  n_layer_pairs_half: 6      # TODO: verify from source; total plies = 4 * n_layer_pairs_half
+  phi: 90.0
+  n_layer_pairs_half: 3
 
 design:
   # x = [T0, T1] shared by every steered layer pair (first study). Degrees.
   bounds:
-    T0: [-90.0, 90.0]
-    T1: [-90.0, 90.0]
+    T0: [0.0, 90.0]
+    T1: [0.0, 90.0]
 
 boundary_conditions:
   out_of_plane: simply_supported_all_edges
   loaded_edges: uniform_end_shortening   # u = -/+ Delta/2 at x = +/- a/2; v free (shear-free)
-  transverse_edges: free                 # in-plane traction-free at y = +/- b/2. TODO: add 'straight'
+  # free: Ny = Nxy = 0 at y = +-b/2 (Case I-a, II-a);  restrained: v = 0 at y = +-b/2 (Case I-b, II-b)
+  transverse_edges: free
+
+buckling:
+  neglect_D16_D26: true      # the source neglects bending-twisting coupling (Eq. 12)
 
 discretisation:
   prebuckling_legendre_degree: 10   # u, v Ritz polynomial degree in each direction
   buckling_sine_terms: 10           # m, n = 1..M for w
-  quadrature_points: 40             # Gauss-Legendre points per direction
+  quadrature_points: 40             # Gauss-Legendre points per direction (even; split at the centre lines)
 
 constraints:
-  min_steering_radius: 0.635        # m. TODO: verify from source (machine/tow-width dependent)
+  min_steering_radius: 25.0         # in. TODO: verify from source (not given in the 2008 paper; machine-dependent)
 
 objective:
-  quantity: buckling_load            # total compressive force at buckling, N
+  quantity: buckling_load
   sense: maximize
 
 benchmark:
-  reference: "Gurdal & Olmedo (1993) in-plane response; Gurdal, Tatting & Wu (2008) buckling. TODO: verify full citations and which paper holds the buckling tables"
-  verified: false
-  tolerance_rel: 1.0e-2
-  cases: []                          # TODO: verify from source — {layup, T0, T1, normalised buckling load}
+  reference: "Gurdal, Tatting & Wu (2008), Composites Part A 39, 911-922"
+  verified: true
+  tolerance_rel: 1.0e-2      # values are quoted to 2-3 significant figures
+  # Quoted values (p.919-920). normalised_load = N_cr a^2 / (E1 h^3); stiffness = E_x^eq / E1.
+  # Straight-fibre Case I-b optimum (p.919): "1.21 ... a +-32 deg laminate with overall normalized
+  # stiffness value of about 0.65". For straight fibres with restrained edges the stiffness is exactly
+  # Qbar11(theta)/E1, which is 0.562 at +-32 and 0.65 near +-28.5. The best straight-fibre layup in our
+  # sweep is 1.211 at +-28 with stiffness 0.646, so the load and stiffness are reproduced and the
+  # quoted angle is inconsistent with the paper's own stiffness value.
+  straight_case_Ib: {variation_axis: x, phi: 0.0, transverse_edges: restrained, max_normalised_load: 1.21, stiffness_at_max: 0.65, quoted_angle: 32.0}
+  # Optimum locations on a 5-degree T1 grid with T0 = 0 (p.919-920)
+  argmax_T1_at_T0_0: {Ib: 50.0, IIa: 75.0}
+  cases:
+    - {name: "Case I-b variable-stiffness best <0|50>", variation_axis: x, phi: 0.0, transverse_edges: restrained, T0: 0.0, T1: 50.0, normalised_load: 1.44}
+    - {name: "Case II-a straight-fibre best (+-45)", variation_axis: y, phi: 90.0, transverse_edges: free, T0: 45.0, T1: 45.0, normalised_load: 1.75, normalised_stiffness: 0.14}
+    - {name: "Case II-a variable-stiffness best <0|75>", variation_axis: y, phi: 90.0, transverse_edges: free, T0: 0.0, T1: 75.0, normalised_load: 3.14, normalised_stiffness: 0.21}

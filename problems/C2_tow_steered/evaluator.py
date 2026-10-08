@@ -7,7 +7,8 @@ angle field is even in x and y, so the in-plane problem is solved on the quarter
 X = 2x/a, Y = 2y/b in [0, 1] (where A is smooth; the |r| kink sits on the symmetry line).
 Unit end-shortening Delta = 1:
     u = -(Delta/2) X + X (1 - X) sum c_ij P_i(2X-1) P_j(2Y-1)     (u odd in x, prescribed at X = 1)
-    v =                Y         sum d_ij P_i(2X-1) P_j(2Y-1)     (v odd in y)
+    v =                Y         sum d_ij P_i(2X-1) P_j(2Y-1)     (v odd in y; free transverse edges)
+    v =                Y (1 - Y) sum d_ij P_i(2X-1) P_j(2Y-1)     (restrained: v = 0 at y = +-b/2)
 P are Legendre polynomials. Remaining edge conditions are natural (traction-free transverse edges,
 shear-free loaded edges). The Ritz coefficients minimise U = 1/2 int eps^T A eps dA; N = A eps is
 mirrored to the full plate (Nx, Ny even-even; Nxy odd-odd).
@@ -87,7 +88,7 @@ def _sines(M: int, s: np.ndarray):
 
 # ---------------------------------------------------------------- step 1: prebuckling
 
-def prebuckling(A: np.ndarray, a: float, b: float, p: int, nq: int):
+def prebuckling(A: np.ndarray, a: float, b: float, p: int, nq: int, transverse_edges: str = "free"):
     """In-plane stress resultants N = (Nx, Ny, Nxy) on the full quadrature grid, unit end-shortening.
 
     A has shape (nq, nq, 3, 3), indexed [xi, eta], and must satisfy A16 = A26 = 0.
@@ -100,14 +101,19 @@ def prebuckling(A: np.ndarray, a: float, b: float, p: int, nq: int):
     P, dP = _legendre(p, 2 * S - 1)
     dP = 2 * dP  # d/dX
     gu, dgu = (S * (1 - S))[:, None] * P, (1 - 2 * S)[:, None] * P + (S * (1 - S))[:, None] * dP
-    gv, dgv = S[:, None] * P, P + S[:, None] * dP
+    if transverse_edges == "free":
+        gv, dgv = S[:, None] * P, P + S[:, None] * dP
+    elif transverse_edges == "restrained":
+        gv, dgv = (S * (1 - S))[:, None] * P, (1 - 2 * S)[:, None] * P + (S * (1 - S))[:, None] * dP
+    else:
+        raise ValueError(f"unknown transverse_edges {transverse_edges!r}")
 
     def outer(fx, fy):  # (h, h, (p+1)^2)
         return np.einsum("xi,yj->xyij", fx, fy).reshape(h, h, -1)
 
     zero = np.zeros((h, h, (p + 1) ** 2))
     Bu = np.stack([(2 / a) * outer(dgu, P), zero, (2 / b) * outer(gu, dP)], 2)
-    Bv = np.stack([zero, (2 / b) * outer(P, dgv), (2 / a) * outer(dP, gv)], 2)
+    Bv = np.stack([zero, (2 / b) * outer(P, dgv), (2 / a) * outer(dP, gv)], 2)  # v basis: P_i(X) g_j(Y)
     B = np.concatenate([Bu, Bv], -1)  # (h, h, 3, ndof)
 
     Aq = A[h:, h:]
@@ -127,7 +133,7 @@ def prebuckling(A: np.ndarray, a: float, b: float, p: int, nq: int):
 
 # ---------------------------------------------------------------- step 2: buckling
 
-def buckling(D: np.ndarray, N: np.ndarray, a: float, b: float, M: int, nq: int):
+def buckling(D: np.ndarray, N: np.ndarray, a: float, b: float, M: int, nq: int, neglect_D16_D26: bool = False):
     """Smallest positive load factor lambda and its mode coefficients W (M x M)."""
     s, w = _gauss(nq)
     S, dS, d2S = _sines(M, s)
@@ -140,6 +146,9 @@ def buckling(D: np.ndarray, N: np.ndarray, a: float, b: float, M: int, nq: int):
                       2 * (2 / a) * (2 / b) * outer(dS, dS)], 2)
     wt = np.outer(w, w) * (a / 2) * (b / 2)
 
+    if neglect_D16_D26:
+        D = D.copy()
+        D[..., [0, 1, 2, 2], [2, 2, 0, 1]] = 0.0
     Kb = np.einsum("xy,xykn,xykl,xylm->nm", wt, kappa, D, kappa, optimize=True)
     Nx, Ny, Nxy = (wt * N[..., i] for i in range(3))
     Kg = (np.einsum("xy,xyn,xym->nm", Nx, wx, wx) + np.einsum("xy,xyn,xym->nm", Ny, wy, wy)
@@ -163,13 +172,21 @@ def analyse(T0: float, T1: float, config: dict[str, Any]) -> dict[str, Any]:
     Q = reduced_stiffness(mat["E1"], mat["E2"], mat["G12"], mat["nu12"])
     A, _, D = abd_matrices(layer_angles(theta, layup["n_layer_pairs_half"]), Q, mat["ply_thickness"])
 
-    N = prebuckling(A, a, b, disc["prebuckling_legendre_degree"], nq)
+    bc = config["boundary_conditions"]
+    N = prebuckling(A, a, b, disc["prebuckling_legendre_degree"], nq, bc["transverse_edges"])
     force = -(N[..., 0] @ w) * (b / 2)  # compressive force through each x-section, unit Delta
-    lam, mode = buckling(D, N, a, b, disc["buckling_sine_terms"], nq)
+    lam, mode = buckling(D, N, a, b, disc["buckling_sine_terms"], nq,
+                         config.get("buckling", {}).get("neglect_D16_D26", False))
+    h = 4 * layup["n_layer_pairs_half"] * mat["ply_thickness"]
+    P = lam * float(force.mean())
     return {
-        "lambda": lam,  # critical end-shortening (m)
-        "buckling_load": lam * float(force.mean()),
-        "axial_stiffness": float(force.mean()),  # N per m of end-shortening
+        "lambda": lam,  # critical end-shortening
+        "buckling_load": P,
+        # Gurdal, Tatting & Wu (2008) normalisation: N_cr_av a^2 / (E1 h^3), Eq. (19);
+        # E_x^eq / E1 with E_x^eq = a * force / (h b * total end-shortening), Eq. (18).
+        "normalised_load": P / b * a**2 / (mat["E1"] * h**3),
+        "normalised_stiffness": float(force.mean()) * a / (h * b) / mat["E1"],
+        "axial_stiffness": float(force.mean()),  # force per unit end-shortening
         "section_force_spread": float(np.ptp(force) / abs(force.mean())),
         "N": N, "A": A, "D": D, "mode": mode, "X": X, "Y": Y,
         "max_steering_curvature": float(steering_curvature(T0, T1, X, Y, plate, layup).max()),
@@ -185,6 +202,6 @@ def evaluate(design: Sequence[float], config: dict[str, Any]) -> EvalResult:
         objective=-r["buckling_load"],
         constraints=constraints,
         feasible=all(v <= 0 for v in constraints.values()),
-        metadata={k: r[k] for k in ("buckling_load", "lambda", "axial_stiffness",
+        metadata={k: r[k] for k in ("buckling_load", "normalised_load", "normalised_stiffness", "lambda", "axial_stiffness",
                                     "section_force_spread", "max_steering_curvature")},
     )

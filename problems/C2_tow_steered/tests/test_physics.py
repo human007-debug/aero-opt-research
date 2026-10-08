@@ -49,8 +49,10 @@ def test_straight_fibre_prebuckling_is_uniform(cfg):
 @pytest.mark.parametrize("axis", ["x", "y"])
 @pytest.mark.parametrize("T", VAT)
 def test_section_force_equilibrium(cfg, axis, T):
+    # Ritz satisfies equilibrium weakly; with the quarter-plate basis the error falls spectrally.
     cfg["layup"]["variation_axis"] = axis
-    assert ev.analyse(*T, cfg)["section_force_spread"] < 1e-5
+    cfg["discretisation"]["prebuckling_legendre_degree"] = 18
+    assert ev.analyse(*T, cfg)["section_force_spread"] < 1e-10
 
 
 @pytest.mark.parametrize("axis", ["x", "y"])
@@ -70,6 +72,7 @@ def test_mirror_symmetry_of_angles(cfg, T):
 
 def test_curved_fibres_change_load_distribution(cfg):
     # y-variation, stiffer (near-0 deg) edges: the edges carry more axial load than the centre.
+    cfg["layup"].update(variation_axis="y", phi=0.0)
     N = ev.analyse(60.0, 0.0, cfg)["N"][..., 0]
     nq = N.shape[1]
     assert abs(N[nq // 2, -1]) > 2 * abs(N[nq // 2, nq // 2])
