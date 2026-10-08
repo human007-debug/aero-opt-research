@@ -1,0 +1,63 @@
+# C1 — Stacking sequence for maximum buckling load
+# Simply supported rectangular plate, biaxial compression, symmetric & balanced laminate.
+#
+# STATUS: evaluator physics implemented and unit-tested; benchmark NOT yet reproduced.
+# Every value tagged `verified: false` must be checked against
+# Le Riche & Haftka (1993) before this problem is used for search.
+
+id: C1_buckling_stacking
+units: SI   # Pa, m, N/m
+
+design:
+  # Le Riche & Haftka-style encoding: the half-laminate (outer -> mid-plane) is a list
+  # of 2-ply stacks. Symmetry and balance hold by construction.
+  encoding: stacks
+  n_plies_total: 48          # TODO: verify from source (ply count of the benchmark case)
+  stack_alphabet:
+    0: [0, 0]
+    1: [45, -45]
+    2: [90, 90]
+
+material:
+  verified: false            # TODO: verify from source (graphite-epoxy properties used in the paper)
+  E1: 127.59e+9
+  E2: 13.03e+9
+  G12: 6.41e+9
+  nu12: 0.3
+  ply_thickness: 1.27e-4
+
+plate:
+  verified: false            # TODO: verify from source (plate dimensions of each benchmark case)
+  a: 0.508                   # length along x (load Nx)
+  b: 0.127                   # width along y (load Ny)
+
+loads:
+  verified: false            # TODO: verify from source (load cases / Ny:Nx ratios)
+  Nx: null                   # N/m — must be filled per benchmark load case
+  Ny: null
+
+buckling:
+  max_half_waves: 20         # m, n searched in 1..max_half_waves
+  neglect_D16_D26: true      # closed-form solution; |D16|,|D26| reported in metadata
+
+constraints:
+  max_contiguous: 4
+  contiguity_mode: ply       # TODO: verify from source how the paper counts +-45 stacks
+  strength:
+    enabled: false
+    verified: false          # TODO: verify from source (strain allowables & safety factor)
+    eps1_allow: null
+    eps2_allow: null
+    gamma12_allow: null
+    safety_factor: null
+
+objective:
+  # Evaluators always minimise; objective = -lambda_cr.
+  quantity: critical_load_factor
+  sense: maximize
+
+benchmark:
+  reference: "Le Riche, R. & Haftka, R. T. (1993). AIAA Journal. TODO: verify full citation (volume, issue, pages)"
+  verified: false
+  tolerance_rel: 1.0e-3
+  cases: []                  # TODO: verify from source — list of {plate, loads, optimum stacking, lambda_cr}
