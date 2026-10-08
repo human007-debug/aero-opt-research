@@ -72,6 +72,11 @@ Caveats that limit what the front means:
 3. Every candidate is within 13 at.% of an oxidation-tested alloy by construction, so these are
    refinements of known families, not new chemistries.
 
+Shortlist for experiments (`runs/m3x_pareto/shortlist.md`, `python -m problems.M3_rhea_oxidation.shortlist`):
+six compositions spread along the front by k-means. The most balanced is Al9 Cr16 Mo23 Nb30 Ta6 Ti16
+(predicted σ_y(1000 °C) ≈ 930 MPa ×/÷1.5, ρ 8.0 g/cm³, mass gain ≈ 6 mg/cm² ×/÷3.2 after 20 h,
+P(BCC) 0.82). The four Al–Cr–Mo–Ti–Nb candidates sit at P(BCC) ≈ 0.50.
+
 ## 5. What would make this publishable
 
 1. Verify the Maresca–Curtin constants and elemental inputs from the paper (upload or allow arxiv.org).
