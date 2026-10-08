@@ -1,0 +1,34 @@
+# M3X — Refractory alloys for high-temperature specific strength and oxidation resistance
+# (extension of M3 in CLAUDE.md; research idea 1)
+#
+# Surrogates (all validated on held-out alloys; see data/*_validation.md):
+#   strength   GP on composition + T, trained on MPEA dataset single-phase BCC compression tests
+#   oxidation  GP on composition + T + t (+ physics descriptors), trained on the audited Gorsse et al. dataset
+#   phase      logistic classifier P(single-phase BCC), trained on MPEA reported microstructures
+#   density    ideal mixing of elemental atomic volumes (RMS error 1.5% vs 27 measured alloys)
+# Outputs are PREDICTIONS for candidate alloys. They are not measured properties and need experiments.
+
+id: M3_rhea_oxidation
+
+design:
+  elements: [Al, Cr, Hf, Mo, Nb, Ta, Ti, V, W, Zr]
+  min_fraction: 0.05         # components below 5 at.% are dropped and the rest renormalised
+
+conditions:                  # chosen where both datasets are densest (data/: 1000 C has the most rows in both)
+  T_strength_C: 1000
+  T_ox_C: 1000
+  t_ox_h: 20
+
+uncertainty_calibration:     # multiply GP sd so held-out-alloy z-scores have unit RMS (from validation)
+  strength: 1.33             # strength_validation.md, model ml, split alloy: rms z 1.33
+  oxidation: 1.0             # TODO: set from oxidation_validation.md (model used, split alloy)
+
+constraints:
+  log10_mass_gain_max: 1.0   # 10 mg/cm^2 after 20 h at 1000 C (single-objective mode only)
+  p_bcc_min: 0.5
+  max_sd_log_strength: 0.20  # stay inside the region the strength data inform (x1.6 in sigma)
+  max_sd_log_mass_gain: 0.50 # TODO: set from the sd distribution on known alloys
+
+objective:
+  quantity: specific_yield_strength   # sigma_y(1000 C) / density, MPa cm^3/g
+  sense: maximize

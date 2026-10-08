@@ -1,0 +1,144 @@
+# Elemental data for M3 (strength, density).
+# Source: pymatgen-core 2026.10.2, pymatgen/core/periodic_table.json.gz (MIT licence), whose values come
+# from WebElements and other compilations. Downloaded as a wheel from PyPI on 2026-10-08.
+# Derived here: atomic_volume_A3 = molar volume / N_A; shear_modulus_from_E_nu_GPa = E / (2 (1 + nu)).
+# shear_modulus_GPa_used: listed rigidity modulus, except Mo (see note). Zr and Hf listed/derived disagree by
+# 30% and 5%; the listed values are used pending a primary source.
+# Known source error: Mo 'Rigidity modulus' is listed as 20 GPa; E/(2(1+nu)) gives 125.6 GPa, consistent with
+# the other elements whose listed and derived values agree. The derived value is used.
+# Si has no listed nu or G, and its stable form is not a metal; it is excluded from the strength model.
+# Atomic volumes are those of each element's stable structure at room temperature (hcp for Ti, Zr, Hf; fcc for
+# Al; diamond for Si). TODO: verify from source which volumes Maresca & Curtin (2020) use for Al, Ti, Zr, Hf.
+Al:
+  atomic_mass: 26.9815386
+  molar_volume_cm3: 10.0
+  atomic_volume_A3: 16.6054
+  density_kg_m3: 2700
+  youngs_modulus_GPa: 70
+  poissons_ratio: 0.35
+  rigidity_modulus_GPa_listed: 26
+  melting_point_K: 933.47
+  shear_modulus_GPa_used: 26.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 25.93
+Cr:
+  atomic_mass: 51.9961
+  molar_volume_cm3: 7.23
+  atomic_volume_A3: 12.0057
+  density_kg_m3: 7140
+  youngs_modulus_GPa: 279
+  poissons_ratio: 0.21
+  rigidity_modulus_GPa_listed: 115
+  melting_point_K: 2180
+  shear_modulus_GPa_used: 115.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 115.29
+Hf:
+  atomic_mass: 178.49
+  molar_volume_cm3: 13.44
+  atomic_volume_A3: 22.3176
+  density_kg_m3: 13310
+  youngs_modulus_GPa: 78
+  poissons_ratio: 0.37
+  rigidity_modulus_GPa_listed: 30
+  melting_point_K: 2506
+  shear_modulus_GPa_used: 30.0
+  shear_modulus_note: 'listed G (E, nu give 28.47; unresolved. TODO: verify from source)'
+  shear_modulus_from_E_nu_GPa: 28.47
+Mo:
+  atomic_mass: 95.94
+  molar_volume_cm3: 9.38
+  atomic_volume_A3: 15.5759
+  density_kg_m3: 10280
+  youngs_modulus_GPa: 329
+  poissons_ratio: 0.31
+  rigidity_modulus_GPa_listed: 20
+  melting_point_K: 2896
+  shear_modulus_GPa_used: 125.57
+  shear_modulus_note: listed G (20) inconsistent with E, nu and bulk modulus; derived
+    used
+  shear_modulus_from_E_nu_GPa: 125.57
+Nb:
+  atomic_mass: 92.90638
+  molar_volume_cm3: 10.83
+  atomic_volume_A3: 17.9836
+  density_kg_m3: 8570
+  youngs_modulus_GPa: 105
+  poissons_ratio: 0.4
+  rigidity_modulus_GPa_listed: 38
+  melting_point_K: 2750
+  shear_modulus_GPa_used: 38.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 37.5
+Si:
+  atomic_mass: 28.0855
+  molar_volume_cm3: 12.06
+  atomic_volume_A3: 20.0261
+  density_kg_m3: 2330
+  youngs_modulus_GPa: 47
+  poissons_ratio: null
+  rigidity_modulus_GPa_listed: null
+  melting_point_K: 1687
+  shear_modulus_GPa_used: null
+  shear_modulus_note: no listed G
+  shear_modulus_from_E_nu_GPa: null
+Ta:
+  atomic_mass: 180.94788
+  molar_volume_cm3: 10.85
+  atomic_volume_A3: 18.0168
+  density_kg_m3: 16650
+  youngs_modulus_GPa: 186
+  poissons_ratio: 0.34
+  rigidity_modulus_GPa_listed: 69
+  melting_point_K: 3290
+  shear_modulus_GPa_used: 69.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 69.4
+Ti:
+  atomic_mass: 47.867
+  molar_volume_cm3: 10.64
+  atomic_volume_A3: 17.6681
+  density_kg_m3: 4507
+  youngs_modulus_GPa: 116
+  poissons_ratio: 0.32
+  rigidity_modulus_GPa_listed: 44
+  melting_point_K: 1941
+  shear_modulus_GPa_used: 44.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 43.94
+V:
+  atomic_mass: 50.9415
+  molar_volume_cm3: 8.32
+  atomic_volume_A3: 13.8157
+  density_kg_m3: 6110
+  youngs_modulus_GPa: 128
+  poissons_ratio: 0.37
+  rigidity_modulus_GPa_listed: 47
+  melting_point_K: 2183
+  shear_modulus_GPa_used: 47.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 46.72
+W:
+  atomic_mass: 183.84
+  molar_volume_cm3: 9.47
+  atomic_volume_A3: 15.7253
+  density_kg_m3: 19250
+  youngs_modulus_GPa: 411
+  poissons_ratio: 0.28
+  rigidity_modulus_GPa_listed: 161
+  melting_point_K: 3695
+  shear_modulus_GPa_used: 161.0
+  shear_modulus_note: listed G
+  shear_modulus_from_E_nu_GPa: 160.55
+Zr:
+  atomic_mass: 91.224
+  molar_volume_cm3: 14.02
+  atomic_volume_A3: 23.2808
+  density_kg_m3: 6511
+  youngs_modulus_GPa: 68
+  poissons_ratio: 0.34
+  rigidity_modulus_GPa_listed: 33
+  melting_point_K: 2128
+  shear_modulus_GPa_used: 33.0
+  shear_modulus_note: 'listed G (E, nu give 25.37; unresolved. TODO: verify from source)'
+  shear_modulus_from_E_nu_GPa: 25.37
