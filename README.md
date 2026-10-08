@@ -14,7 +14,7 @@ pytest
 
 | Problem | Evaluator | Physics tests | Benchmark reproduced | Search |
 |---|---|---|---|---|
-| C1 buckling stacking | CLT + closed-form SS-plate buckling | passing | **no**: values in `problem.yaml` need verifying against Le Riche & Haftka (1993) | blocked |
+| C1 buckling stacking | CLT + closed-form SS-plate buckling + max-strain | passing | **yes**: Le Riche & Haftka (1995). Exhaustive enumeration of all 3^12 designs matches the best 44/48-ply λcr and all four Table 2 optima | unblocked |
 | C2 tow-steered plate | Two-step Rayleigh-Ritz: in-plane prebuckling on the quarter plate, then buckling | passing | **no**: benchmark cases still to be taken from Gürdal & Olmedo / Gürdal, Tatting & Wu | blocked |
 | A2 lift distribution | Lifting line, Fourier circulation | passing | reproduces the closed-form bell optimum (b/b0 = sqrt(3/2), D/D_ell = 8/9). Attribution to Prandtl (1933) still to verify from source | unblocked |
 

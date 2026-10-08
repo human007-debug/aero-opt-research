@@ -1,63 +1,84 @@
-# C1 — Stacking sequence for maximum buckling load
+# C1 — Stacking sequence for maximum failure load (buckling + strain)
 # Simply supported rectangular plate, biaxial compression, symmetric & balanced laminate.
 #
-# STATUS: evaluator physics implemented and unit-tested; benchmark NOT yet reproduced.
-# Every value tagged `verified: false` must be checked against
-# Le Riche & Haftka (1993) before this problem is used for search.
+# Source of all data marked `verified: true`:
+#   Le Riche, R. & Haftka, R. T. (1995). Improved genetic algorithm for minimum thickness
+#   composite laminate design. Composites Engineering 5(2), 143-161.  (copy supplied by the user)
+# The 1993 GA paper, cited in it as: Le Riche & Haftka (1993), Optimization of laminate stacking
+# sequence for buckling load maximization by genetic algorithm. AIAA J. 31(5), 951-970.
 
 id: C1_buckling_stacking
-units: SI   # Pa, m, N/m
+units: imperial   # psi, in, lb/in (as in the source). Evaluator is unit-consistent.
 
 design:
-  # Le Riche & Haftka-style encoding: the half-laminate (outer -> mid-plane) is a list
-  # of 2-ply stacks. Symmetry and balance hold by construction.
+  # The half-laminate (outer -> mid-plane) is a list of 2-ply stacks.
+  # Symmetry and balance hold by construction.
   encoding: stacks
-  n_plies_total: 48          # TODO: verify from source (ply count of the benchmark case)
+  n_plies_total: 48          # 1995 paper: optimal thickness is 48 plies for all four load cases
   stack_alphabet:
     0: [0, 0]
     1: [45, -45]
     2: [90, 90]
 
 material:
-  verified: false            # TODO: verify from source (graphite-epoxy properties used in the paper)
-  E1: 127.59e+9
-  E2: 13.03e+9
-  G12: 6.41e+9
+  verified: true             # 1995 paper, p.154 (graphite-epoxy)
+  E1: 18.50e+6
+  E2: 1.89e+6
+  G12: 0.93e+6
   nu12: 0.3
-  ply_thickness: 1.27e-4
+  ply_thickness: 0.005
 
 plate:
-  verified: false            # TODO: verify from source (plate dimensions of each benchmark case)
-  a: 0.508                   # length along x (load Nx)
-  b: 0.127                   # width along y (load Ny)
+  verified: true             # 1995 paper, p.154
+  a: 20.0
+  b: 5.0
+
+load_cases:                  # 1995 paper, p.154. Compression positive, lb/in. List of (Nx, Ny) sets.
+  verified: true
+  LC1: [[13000, 1625]]
+  LC2: [[12500, 3125]]
+  LC3: [[9800, 4900]]
+  MULT: [[12000, 1500], [10800, 2700], [9000, 4500]]   # design must withstand every set
 
 loads:
-  verified: false            # TODO: verify from source (load cases / Ny:Nx ratios)
-  Nx: null                   # N/m — must be filled per benchmark load case
-  Ny: null
+  case: LC1
 
 buckling:
   max_half_waves: 20         # m, n searched in 1..max_half_waves
-  neglect_D16_D26: true      # closed-form solution; |D16|,|D26| reported in metadata
+  neglect_D16_D26: true      # as in the source's closed-form lambda_b; |D16|,|D26| reported in metadata
 
 constraints:
   max_contiguous: 4
-  contiguity_mode: ply       # TODO: verify from source how the paper counts +-45 stacks
+  # 1995 paper: optimal LC1 design contains +-45_5, so +45/-45 stacks are not contiguous plies.
+  contiguity_mode: ply
   strength:
-    enabled: false
-    verified: false          # TODO: verify from source (strain allowables & safety factor)
-    eps1_allow: null
-    eps2_allow: null
-    gamma12_allow: null
-    safety_factor: null
+    verified: true           # 1995 paper, p.144-145 and p.154: maximum-strain criterion
+    enabled: true
+    eps1_allow: 0.008
+    eps2_allow: 0.029
+    gamma12_allow: 0.015
+    safety_factor: 1.5
 
 objective:
-  # Evaluators always minimise; objective = -lambda_cr.
+  # Evaluators always minimise; objective = -lambda_cr, lambda_cr = min(lambda_buckling, lambda_strength).
   quantity: critical_load_factor
   sense: maximize
 
 benchmark:
-  reference: "Le Riche, R. & Haftka, R. T. (1993). AIAA Journal. TODO: verify full citation (volume, issue, pages)"
-  verified: false
-  tolerance_rel: 1.0e-3
-  cases: []                  # TODO: verify from source — list of {plate, loads, optimum stacking, lambda_cr}
+  reference: "Le Riche & Haftka (1995), Composites Engineering 5(2), 143-161"
+  verified: true
+  feasibility_delta: 0.005   # p.155: delta = 0.005 (lambda_cr >= 1 - delta counts as feasible)
+  # p.149: best LC1 designs found with 44, 48 and 52 plies (values given to 3 decimals).
+  # 44 and 48 match exhaustive enumeration. The 52-ply value is only the best found by a
+  # minimum-thickness GA (not a maximisation at 52 plies); enumeration finds 1.2619 > 1.201.
+  lc1_best_lambda_by_plies: {44: 0.879, 48: 1.040, 52: 1.201}
+  practical_optimum_rel: 1.0e-3   # p.154: within 0.1% of the global-optimum lambda_cr
+  # Table 2, p.154: optimal 48-ply designs and their critical failure mode.
+  # Genes: 0 = 0_2, 1 = +-45, 2 = 90_2 (outer -> mid-plane, half laminate).
+  table2:
+    LC1:  {layup: "[+-45_5/0_4/+-45/0_4/90_2/0_2]s",        genes: [1,1,1,1,1,0,0,1,0,0,2,0], mode: strain}
+    LC2:  {layup: "[+-45_2/90_2/+-45_3/0_2/+-45/0_4/+-45/0_2]s", genes: [1,1,2,1,1,1,0,1,0,0,1,0], mode: strain}
+    # LC3: the scan reads like "+-45_3", which gives only 40 plies. "+-45_5" gives 48 plies and is exactly
+    # the exhaustive-search optimum, so the subscript is taken as 5.
+    LC3:  {layup: "[90_2/+-45_2/(90_2/+-45)_2/+-45_5]s",    genes: [2,1,1,2,1,2,1,1,1,1,1,1], mode: buckling}
+    MULT: {layup: "[90_4/+-45_3/0_4/+-45/0_4/90_2/0_2]s",   genes: [2,2,1,1,1,0,0,1,0,0,2,0], mode: both}

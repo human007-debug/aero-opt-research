@@ -14,7 +14,9 @@ evaluate = ev.evaluate
 @pytest.fixture
 def cfg():
     c = copy.deepcopy(load_config(PID))
-    c["loads"]["Nx"], c["loads"]["Ny"] = 1.0e4, 0.0
+    c["load_cases"]["uniaxial"] = [[1.0e4, 0.0]]
+    c["loads"]["case"] = "uniaxial"
+    c["constraints"]["strength"]["enabled"] = False
     return c
 
 
@@ -53,7 +55,7 @@ def test_isotropic_long_plate_mode_count():
 def test_load_factor_scales_inversely_with_load(cfg):
     design = [1, 0, 2] * 4
     r1 = evaluate(design, cfg)
-    cfg["loads"]["Nx"] *= 2
+    cfg["load_cases"]["uniaxial"] = [[2.0e4, 0.0]]
     r2 = evaluate(design, cfg)
     np.testing.assert_allclose(r1.metadata["lambda_cr"], 2 * r2.metadata["lambda_cr"], rtol=1e-12)
 
@@ -110,9 +112,24 @@ def test_deterministic(cfg):
     assert evaluate(design, cfg).to_dict() == evaluate(design, cfg).to_dict()
 
 
-def test_unset_loads_refuse_to_run():
-    with pytest.raises(ValueError, match="loads"):
-        evaluate([1] * 12, load_config(PID))
+def test_multiple_load_sets_take_the_minimum(cfg):
+    design = [1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2]
+    cfg["load_cases"]["a"], cfg["load_cases"]["b"] = [[1.0e4, 0.0]], [[0.0, 1.0e4]]
+    cfg["load_cases"]["ab"] = [[1.0e4, 0.0], [0.0, 1.0e4]]
+    lam = {}
+    for k in ("a", "b", "ab"):
+        cfg["loads"]["case"] = k
+        lam[k] = evaluate(design, cfg).metadata["lambda_cr"]
+    assert lam["ab"] == pytest.approx(min(lam["a"], lam["b"]))
+
+
+def test_strain_load_factor_scales_with_thickness():
+    # Max-strain lambda is linear in laminate thickness for the same proportions (1995 paper, p.153).
+    c = copy.deepcopy(load_config(PID))
+    r1 = evaluate([1, 0, 2] * 4, c)
+    c["design"]["n_plies_total"] = 96
+    r2 = evaluate([1, 0, 2] * 8, c)
+    assert r2.metadata["lambda_strength"] == pytest.approx(2 * r1.metadata["lambda_strength"], rel=1e-10)
 
 
 def test_yaml_numeric_fields_parse_as_numbers():

@@ -1,29 +1,75 @@
-"""Benchmark reproduction: Le Riche & Haftka (1993).
+"""Benchmark: Le Riche & Haftka (1995), Composites Engineering 5(2), 143-161.
 
-Skipped until problem.yaml's benchmark.cases are filled from the paper and marked
-verified. Search on C1 must not start before this test passes.
+The 48-ply design space (3^12 stack sequences) is enumerated exhaustively, so the global optima
+are exact rather than the result of a search.
 """
 import copy
 
+import numpy as np
 import pytest
 
-from core.problem import load_config, load_evaluator
+from core.problem import load_config
+from problems.C1_buckling_stacking import evaluator as ev
 
-PID = "C1_buckling_stacking"
-CFG = load_config(PID)
+CFG = load_config("C1_buckling_stacking")
 BENCH = CFG["benchmark"]
-
-pytestmark = pytest.mark.skipif(
-    not BENCH["verified"] or not BENCH["cases"],
-    reason="TODO: verify benchmark cases from Le Riche & Haftka (1993) and set benchmark.verified",
-)
+CASES = ["LC1", "LC2", "LC3", "MULT"]
 
 
-@pytest.mark.parametrize("case", BENCH["cases"] or [None])
-def test_reproduces_published_optimum(case):
-    cfg = copy.deepcopy(CFG)
-    cfg["plate"].update(case["plate"])
-    cfg["loads"].update(case["loads"])
-    result = load_evaluator(PID)(case["design"], cfg)
-    assert result.feasible
-    assert result.metadata["lambda_cr"] == pytest.approx(case["lambda_cr"], rel=BENCH["tolerance_rel"])
+def _cfg(case, plies):
+    c = copy.deepcopy(CFG)
+    c["loads"]["case"] = case
+    c["design"]["n_plies_total"] = plies
+    return c
+
+
+@pytest.fixture(scope="module")
+def best():
+    """Exhaustive best contiguity-feasible lambda_cr for each (case, plies)."""
+    out = {}
+    for case in CASES:
+        for plies in (44, 48):
+            r = ev.batch_evaluate(ev.enumerate_designs(plies // 4), _cfg(case, plies))
+            out[case, plies] = float(np.max(np.where(r["contiguity_ok"], r["lambda_cr"], -np.inf)))
+    return out
+
+
+def test_batch_matches_scalar_evaluator():
+    rng = np.random.default_rng(0)
+    for case in CASES:
+        c = _cfg(case, 48)
+        G = rng.integers(0, 3, (40, 12))
+        r = ev.batch_evaluate(G, c)
+        for i, g in enumerate(G):
+            s = ev.evaluate(list(g), c)
+            assert r["lambda_cr"][i] == pytest.approx(s.metadata["lambda_cr"], rel=1e-10)
+            assert r["contiguity_ok"][i] == (s.constraints["contiguity"] <= 0)
+
+
+@pytest.mark.parametrize("plies", [44, 48])
+def test_lc1_best_lambda_by_plies(best, plies):
+    # Paper gives 3 decimals.
+    assert best["LC1", plies] == pytest.approx(BENCH["lc1_best_lambda_by_plies"][plies], abs=5e-4)
+
+
+@pytest.mark.slow
+def test_lc1_52_plies_at_least_paper_value():
+    r = ev.batch_evaluate(ev.enumerate_designs(13), _cfg("LC1", 52))
+    assert np.max(np.where(r["contiguity_ok"], r["lambda_cr"], -np.inf)) >= BENCH["lc1_best_lambda_by_plies"][52]
+
+
+@pytest.mark.parametrize("case", CASES)
+def test_minimum_thickness_is_48_plies(best, case):
+    feasible = 1 - BENCH["feasibility_delta"]
+    assert best[case, 44] < feasible <= best[case, 48]
+
+
+@pytest.mark.parametrize("case", CASES)
+def test_table2_design_is_practical_optimum(best, case):
+    d = BENCH["table2"][case]
+    r = ev.evaluate(d["genes"], _cfg(case, 48))
+    assert r.feasible
+    assert r.metadata["lambda_cr"] >= 1 - BENCH["feasibility_delta"]
+    assert r.metadata["lambda_cr"] >= best[case, 48] * (1 - BENCH["practical_optimum_rel"])
+    if d["mode"] in ("strain", "buckling"):
+        assert r.metadata["failure_mode"] == d["mode"]
