@@ -79,6 +79,13 @@ used across the M3X design space.
 
 Phase classifier (`data/phase_validation.md`), unseen formula: ROC AUC 0.84, Brier 0.144 (base rate 0.218).
 
+External check (not in the training data). Bejjipurapu et al. (Purdue, arXiv:2512.15958, Dec 2025) found
+Al30Mo5Ti15Cr50 and Al40Mo5Ti30Cr25 by experimental active learning, both < 1 mg/cm² after 24 h at
+1000 °C. They lie 30 and 18 at.% from our oxidation data. Predictions at 1000 °C / 24 h: Bayesian ridge
+1.3 and 1.7 mg/cm² (×/÷3.2, consistent with the measurements); GBDT 3.2 and 3.7 mg/cm² (more than 3× too
+high). Two alloys and an inequality only, but consistent with the distance analysis. Both lie outside the
+search's trust region (13.2 at.%), so that limit would have excluded these discoveries.
+
 ## 4. Search (`runs/m3x_pareto/`)
 
 Objectives at 1000 °C: maximise predicted specific yield strength; minimise predicted log10 mass gain
@@ -104,7 +111,22 @@ six compositions spread along the front by k-means. The most balanced is Al9 Cr1
 (predicted σ_y(1000 °C) ≈ 930 MPa ×/÷1.5, ρ 8.0 g/cm³, mass gain ≈ 6 mg/cm² ×/÷3.2 after 20 h,
 P(BCC) 0.82). The four Al–Cr–Mo–Ti–Nb candidates sit at P(BCC) ≈ 0.50.
 
-## 5. What would make this publishable
+## 5. Related work (positioning)
+
+- Gorsse et al., Scripta Mater. 255 (2025) 116394: GBDT on the dataset used here; row-level nested CV plus
+  5 held-out alloys; designed and tested three Al-Cr-Mo-Ta-Ti alloys.
+- Mishra et al., arXiv:2310.15083 (Comput. Mater. Sci. 2024): Refractory Oxidation Database, mass-change
+  curves for 407 alloys (nanohub.org/tools/refoxdb).
+- Bejjipurapu et al., arXiv:2511.01095: GPR with oxide-based descriptors, 77 compositions, MAE 5.78 mg/cm².
+- Bejjipurapu et al., arXiv:2512.15958: experimental active learning (GPR + Bayesian optimisation, 6 rounds
+  of 5 alloys) in Al-containing quaternaries; Al-Cr-Mo-Ti alumina formers < 1 mg/cm²; multi-objective with
+  specific hardness and thermal expansion for bond coats.
+Experimental active-learning discovery of oxidation-resistant RCCAs is therefore done (Purdue). What this
+work adds that those do not: (i) joint yield strength at 1000 °C and oxidation with explicit trust regions,
+and the finding that the two datasets barely overlap; (ii) distance-dependent accuracy of oxidation models
+(row-level CV measures only the near-data regime); (iii) an audit of a public dataset with documented errors.
+
+## 6. What would make this publishable
 
 1. Verify the Maresca–Curtin constants and elemental inputs from the paper (upload or allow arxiv.org).
 2. Read Gorsse et al. (2025) to state precisely how their validation differs (grouped vs row-level folds).
