@@ -48,7 +48,7 @@ def test_phase_composition_records_excluded(audit):
 def test_clean_dataset_matches_committed_file(audit):
     cl = da.clean(audit).drop(columns=["comp_sum"]).reset_index(drop=True)
     committed = pd.read_csv(da.CLEAN)
-    assert len(cl) == len(committed) == 853
+    assert len(cl) == len(committed) == 851
     np.testing.assert_allclose(cl[da.ELEMENTS].to_numpy(), committed[da.ELEMENTS].to_numpy())
 
 

@@ -3,7 +3,8 @@
 #
 # Surrogates (all validated on held-out alloys; see data/*_validation.md):
 #   strength   GP on composition + T, trained on MPEA dataset single-phase BCC compression tests
-#   oxidation  Bayesian ridge on composition, 1000/T, log t, trained on the audited Gorsse et al. dataset
+#   oxidation  GP on composition, 1000/T, log t, trained on the audited Gorsse et al. dataset. Chosen on the
+#              external RefOxDB test (data/refoxdb_external_test.json); Bayesian ridge was worse there.
 #   phase      logistic classifier P(single-phase BCC), trained on MPEA reported microstructures
 #   density    ideal mixing of elemental atomic volumes (RMS error 1.5% vs 27 measured alloys)
 # Outputs are PREDICTIONS for candidate alloys. They are not measured properties and need experiments.
@@ -14,6 +15,9 @@ design:
   elements: [Al, Cr, Hf, Mo, Nb, Ta, Ti, V, W, Zr]
   min_fraction: 0.05         # components below 5 at.% are dropped and the rest renormalised
 
+surrogates:
+  oxidation: gp              # gp | bayes_ridge | gbdt (search.py --oxidation-model overrides)
+
 conditions:                  # chosen where both datasets are densest (data/: 1000 C has the most rows in both)
   T_strength_C: 1000
   T_ox_C: 1000
@@ -21,7 +25,8 @@ conditions:                  # chosen where both datasets are densest (data/: 10
 
 uncertainty_calibration:     # multiply GP sd so held-out-alloy z-scores have unit RMS (from validation)
   strength: 1.33             # strength_validation.md, model ml, split alloy: rms z 1.33
-  oxidation: 1.12            # Bayesian ridge, base features, split alloy: rms z 1.12
+  oxidation: 1.70            # GP, base features, split alloy: rms z 1.70 (conservative; external coverage
+                             # of the uncalibrated 90% interval was 0.945)
 
 constraints:
   log10_mass_gain_max: 1.0   # 10 mg/cm^2 after 20 h at 1000 C (single-objective mode only)

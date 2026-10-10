@@ -30,6 +30,12 @@ CLEAN = HERE / "data" / "oxidation_clean.csv"
 REPORT = HERE / "data" / "oxidation_audit.md"
 
 ELEMENTS = ["Al", "Cr", "Hf", "Mo", "Nb", "Si", "Ta", "Ti", "V", "W", "Zr"]
+# Sources whose values conflict with an independent digitisation (RefOxDB) by a unit-sized factor that cannot be
+# resolved without the original figure. Excluded from both datasets.
+UNIT_CONFLICTS = {
+    "10.1016/j.jallcom.2022.164180": "RefOxDB records Fig. 2 in mg/mm^2; values here equal the raw numbers read as "
+                                     "mg/cm^2 (x100 apart). Paper closed-access. TODO: verify from source (Fig. 2 axis unit).",
+}
 TOL_AT = 4.0  # at.%: nominal vs measured compositions differ by a few at.%
 T_COL, t_COL, Y_COL = "Temperature (C)", "time (h)", "specific mass gain (mg/cm2)"
 EL = r"(?:Al|Cr|Hf|Mo|Nb|Si|Ta|Ti|V|W|Zr|Fe|Ni|Co|Re|B|C|Y|Ge|Sn|Mn|Cu)"
@@ -144,6 +150,9 @@ def audit(df: pd.DataFrame) -> pd.DataFrame:
                 flag, note = "element_set_mismatch", f"formula {f} names {sorted(es)}, columns {sorted(cols)}"
             elif notation == "other":
                 note = "formula not parsed (label or wt.%); element set " + ("matches" if es else "unchecked")
+        doi_hit = next((d for d in UNIT_CONFLICTS if d in str(row["source"]).lower()), None)
+        if flag == "ok" and doi_hit:
+            flag, note = "unit_conflict", UNIT_CONFLICTS[doi_hit]
         if flag == "ok" and abs(row["comp_sum"] - 100) > 1:
             flag, note = "composition_sum", f"columns sum to {row['comp_sum']:.1f} at.%"
         flags.append(flag)
@@ -188,7 +197,8 @@ def report(aud: pd.DataFrame, cl: pd.DataFrame) -> str:
              f"Raw rows: {len(aud)}. Unique formulas: {aud['Alloy formula'].nunique()}. Sources: {aud['source'].nunique()}.", "",
              "| Flag | Rows | Action |", "|---|---|---|"]
     act = {"ok": "kept", "corrected": "kept after correction", "formula_mismatch": "excluded",
-           "element_set_mismatch": "excluded", "foreign_element": "excluded", "composition_sum": "excluded"}
+           "element_set_mismatch": "excluded", "foreign_element": "excluded", "composition_sum": "excluded",
+           "unit_conflict": "excluded"}
     for k, v in aud["flag"].value_counts().items():
         lines.append(f"| {k} | {v} | {act.get(k, '')} |")
     lines += ["", f"Repeated (composition, T, t) records: duplicates {int((aud['repeat']=='duplicate').sum())} rows, "

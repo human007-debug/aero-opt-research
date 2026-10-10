@@ -4,15 +4,16 @@ Raw rows: 886. Unique formulas: 163. Sources: 64.
 
 | Flag | Rows | Action |
 |---|---|---|
-| ok | 844 | kept |
+| ok | 842 | kept |
 | formula_mismatch | 30 | excluded |
 | corrected | 12 | kept after correction |
+| unit_conflict | 2 | excluded |
 
 Repeated (composition, T, t) records: duplicates 0 rows, conflicting values 48 rows (kept; they measure experimental scatter).
 Rows in series where mass gain decreases with time: 35 (kept; may be spallation or digitisation error).
 Rows whose source is not a DOI: 45 (Tom_ini); kept but cannot be traced to a publication.
 
-Cleaned rows: 853. Unique compositions: 157.
+Cleaned rows: 851. Unique compositions: 155.
 
 ## Corrections and exclusions
 
@@ -21,6 +22,8 @@ Cleaned rows: 853. Unique compositions: 157.
 | 2 | Cr-31Ta | corrected | Nb -> Ta (formula Cr-31Ta) | http://dx.doi.org/10.1179/mht.2000.17.2.009 |
 | 3 | Cr-9.5Ta | corrected | Nb -> Ta (formula Cr-9.5Ta) | http://dx.doi.org/10.1179/mht.2000.17.2.009 |
 | 71 | NbMoWZr | formula_mismatch | formula NbMoWZr vs columns {'Mo': 2.0, 'Nb': 92.0, 'W': 5.0, 'Zr': 1.0} (closest reading 'ratio', max diff 67.0 at.%) | https://doi.org/10.1016/j.corsci.2021.109513 |
+| 94 | Nb31Ti26Zr26Al6V11 | unit_conflict | RefOxDB records Fig. 2 in mg/mm^2; values here equal the raw numbers read as mg/cm^2 (x100 apart). Paper closed-access. TODO: verify from source (Fig. 2 axis unit). | https://doi.org/10.1016/j.jallcom.2022.164180 |
+| 95 | Nb31Ti34Zr26Al6V3 | unit_conflict | RefOxDB records Fig. 2 in mg/mm^2; values here equal the raw numbers read as mg/cm^2 (x100 apart). Paper closed-access. TODO: verify from source (Fig. 2 axis unit). | https://doi.org/10.1016/j.jallcom.2022.164180 |
 | 99 | Ta2TiCr | formula_mismatch | formula Ta2TiCr vs columns {'Cr': 31.0, 'Ta': 46.5, 'Ti': 22.5} (closest reading 'ratio', max diff 6.0 at.%) | https://doi.org/10.1016/j.jallcom.2023.169000 |
 | 100 | WTaNbTiAl | corrected | filled missing W = 20.0 at.% (formula WTaNbTiAl) | https://doi.org/10.1016/j.corsci.2022.110377 |
 | 107 | Al0.5NbTaTi | formula_mismatch | formula Al0.5NbTaTi vs columns {'Al': 8.6, 'Nb': 30.1, 'Ta': 35.2, 'Ti': 26.1} (closest reading 'ratio', max diff 6.6 at.%) | Tom_ini |

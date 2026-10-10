@@ -6,7 +6,7 @@ constraints oxidation:   log10 mass gain (mg/cm^2) at (T_ox, t_ox) - limit <= 0
             phase:       0.5 - P(single-phase BCC) <= 0
             trust_strength:  calibrated strength sd - max_sd_log_strength <= 0
             trust_oxidation: distance (at.% moved) to the nearest oxidation-tested alloy - max <= 0.
-                         The Bayesian-ridge sd barely varies with extrapolation, so distance is used.
+                         Oxidation surrogate: GP (best and best-calibrated on the external RefOxDB test).
                          Both limits = 75th percentile of the same quantity for held-out known alloys.
 metadata    predictions, their sd, density, physics-model strength (for reference)
 
@@ -40,12 +40,17 @@ def distance_to_oxidation_data(C_ox: np.ndarray) -> np.ndarray:
     return np.abs(C_ox[:, None, :] - U[None, :, :]).sum(-1).min(1) * 100 / 2
 
 
-@lru_cache(maxsize=1)
-def models():
+@lru_cache(maxsize=4)
+def models(oxidation_model: str = "gp"):
     s_model = st.fit("ml")
-    o_model, o_kind = ox.fit("bayes_ridge", "base")
+    o_model, o_kind = ox.fit(oxidation_model, "base")
     p_model = ph.fit("logistic")
     return s_model, (o_model, o_kind), p_model
+
+
+def ox_model_has_std(m) -> bool:
+    est = m.steps[-1][1] if hasattr(m, "steps") else m
+    return type(est).__name__ in ("GaussianProcessRegressor", "BayesianRidge")
 
 
 def normalise(design: Sequence[float], min_fraction: float) -> np.ndarray:
@@ -59,7 +64,7 @@ def normalise(design: Sequence[float], min_fraction: float) -> np.ndarray:
 
 def predict(C: np.ndarray, config: dict[str, Any]) -> dict[str, np.ndarray]:
     """Batch predictions for compositions C (n, len(ELEMENTS)) at the configured conditions."""
-    s_model, (o_model, o_kind), p_model = models()
+    s_model, (o_model, o_kind), p_model = models(config.get("surrogates", {}).get("oxidation", "gp"))
     cond = config["conditions"]
     n = len(C)
     comps = [dict(zip(ELEMENTS, c)) for c in C]
@@ -69,7 +74,10 @@ def predict(C: np.ndarray, config: dict[str, Any]) -> dict[str, np.ndarray]:
     for j, e in enumerate(ELEMENTS):
         C_ox[:, ox.ELEMENTS.index(e)] = C[:, j]
     Xo = ox.features(C_ox, np.full(n, cond["T_ox_C"]), np.full(n, cond["t_ox_h"]), o_kind)
-    lo, lo_sd = o_model.predict(Xo, return_std=True)
+    if hasattr(o_model, "predict") and ox_model_has_std(o_model):
+        lo, lo_sd = o_model.predict(Xo, return_std=True)
+    else:
+        lo, lo_sd = o_model.predict(Xo), np.full(n, np.nan)
     p_bcc = p_model.predict_proba(ph.descriptors(C))[:, 1]
     d_ox = distance_to_oxidation_data(C_ox)
     rho = np.array([pr.density(c) for c in comps])

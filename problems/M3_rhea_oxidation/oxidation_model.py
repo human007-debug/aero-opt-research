@@ -13,9 +13,10 @@ under three splits, each repeated with different random group assignments:
   source  all rows of a publication held out (new composition and new laboratory)
 The noise floor is the pooled scatter of repeated (composition, T, t) measurements.
 
-Model choice for the search: Bayesian ridge on the base features. On held-out alloys it is the most
-accurate model tested and its intervals are close to calibrated (data/oxidation_validation.md). An ARD GP
-was also tested; it was no better on held-out alloys and far slower, so it was dropped from the study.
+Model choice for the search: GP on the base features. Within this dataset Bayesian ridge did best on
+held-out alloys, but on the independent RefOxDB test (refoxdb.py) it was the worst model and overconfident,
+while the GP was among the most accurate and its 90% intervals covered 94.5% of points. An ARD GP was also
+tested; it was no better on held-out alloys and far slower, so it was dropped from the study.
 
 Feature sets
   base     11 at. fractions, 1000/T (K), log10 t (h)

@@ -129,12 +129,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--budget", type=int, default=5000)
     ap.add_argument("--seeds", type=int, default=5)
-    ap.add_argument("--out", type=Path, default=HERE / "runs" / "m3x_pareto")
+    ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--oxidation-model", default=None, help="gp | bayes_ridge | gbdt")
     args = ap.parse_args()
     cfg = config()
+    if args.oxidation_model:
+        cfg["surrogates"]["oxidation"] = args.oxidation_model
+    if args.out is None:
+        name = cfg["surrogates"]["oxidation"]
+        args.out = HERE / "runs" / ("m3x_pareto" if name == "gp" else f"m3x_pareto_{name}")
     args.out.mkdir(parents=True, exist_ok=True)
     from core.repro import environment_info, seed_everything
-    summary = {"budget": args.budget, "seeds": args.seeds, "conditions": cfg["conditions"],
+    summary = {"budget": args.budget, "seeds": args.seeds, "surrogates": cfg["surrogates"], "conditions": cfg["conditions"],
                "constraints": cfg["constraints"], "environment": environment_info(), "runs": {}}
     fronts = {}
     for opt in ("random", "nsga2"):
@@ -161,7 +167,21 @@ def main():
                                "hv": hypervolume(kf[["specific_strength", "log10_mass_gain"]].to_numpy() * [-1, 1])}
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2))
     plot(args.out, fronts, known, summary)
+    export_front(args.out)
     print(json.dumps({k: v for k, v in summary.items() if k != "environment"}, indent=1)[:2000])
+
+
+def export_front(out: Path) -> pd.DataFrame:
+    """Non-dominated feasible NSGA-II points over all seeds -> front_candidates.csv."""
+    recs = [json.loads(l) for f in sorted(out.glob("nsga2/seed_*/evaluations.jsonl")) for l in open(f)]
+    df = pd.DataFrame([r for r in recs if r["feasible"]])
+    F = np.column_stack([-df.specific_strength, df.log10_mass_gain])
+    front = df.iloc[nondominated(F)].sort_values("specific_strength").reset_index(drop=True)
+    front["composition"] = front.composition.map(lambda c: " ".join(f"{e}{v*100:.1f}" for e, v in c.items()))
+    cols = ["composition", "specific_strength", "sigma_MPa", "density", "log10_mass_gain", "log_mass_gain_sd",
+            "log_sigma_sd", "p_bcc", "ox_distance_at_pct"]
+    front[cols].round(4).to_csv(out / "front_candidates.csv", index=False)
+    return front
 
 
 def plot(out: Path, fronts: dict, known: pd.DataFrame, summary: dict):

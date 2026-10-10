@@ -1,0 +1,91 @@
+{
+  "fronts": {
+    "gp": {
+      "n_points": 654,
+      "specific_strength_range": [
+        58.89196999649968,
+        137.925638099825
+      ],
+      "own_log10_mass_gain_range": [
+        -0.2985353133653019,
+        1.033629248530336
+      ],
+      "distance_to_ox_data_median": 10.729300429045592,
+      "expected_abs_error_log10_median": 0.6945806242339683,
+      "cross_scored": {
+        "gbdt": {
+          "median_abs_diff_log10": 0.6330318913814086,
+          "frac_other_predicts_3x_worse": 0.9296636085626911,
+          "spearman_rank_along_front": 0.07189630412420461
+        },
+        "bayes_ridge": {
+          "median_abs_diff_log10": 0.7513697880855059,
+          "frac_other_predicts_3x_worse": 0.9831804281345565,
+          "spearman_rank_along_front": 0.5057040279850599
+        }
+      },
+      "nearest_point_in_other_front_at_pct": {
+        "gbdt": 5.717499999999998,
+        "bayes_ridge": 6.335
+      }
+    },
+    "gbdt": {
+      "n_points": 66,
+      "specific_strength_range": [
+        91.68828262176162,
+        141.04291225769313
+      ],
+      "own_log10_mass_gain_range": [
+        -0.1726774077262783,
+        1.2674306945529095
+      ],
+      "distance_to_ox_data_median": 12.775893227506511,
+      "expected_abs_error_log10_median": 0.6945806242339683,
+      "cross_scored": {
+        "gp": {
+          "median_abs_diff_log10": 0.12786841473242475,
+          "frac_other_predicts_3x_worse": 0.10606060606060606,
+          "spearman_rank_along_front": 0.8062549584533799
+        },
+        "bayes_ridge": {
+          "median_abs_diff_log10": 0.4886206533265895,
+          "frac_other_predicts_3x_worse": 0.5151515151515151,
+          "spearman_rank_along_front": 0.9784542152073152
+        }
+      },
+      "nearest_point_in_other_front_at_pct": {
+        "gp": 6.7425,
+        "bayes_ridge": 5.8275
+      }
+    },
+    "bayes_ridge": {
+      "n_points": 1186,
+      "specific_strength_range": [
+        68.67249838415226,
+        141.1263165244539
+      ],
+      "own_log10_mass_gain_range": [
+        0.09281013907575486,
+        1.5270138669535975
+      ],
+      "distance_to_ox_data_median": 12.446482248859457,
+      "expected_abs_error_log10_median": 0.6945806242339683,
+      "cross_scored": {
+        "gp": {
+          "median_abs_diff_log10": 0.13710430425943695,
+          "frac_other_predicts_3x_worse": 0.0,
+          "spearman_rank_along_front": 0.6594470833733796
+        },
+        "gbdt": {
+          "median_abs_diff_log10": 0.2166076437162126,
+          "frac_other_predicts_3x_worse": 0.0,
+          "spearman_rank_along_front": 0.8733624211983335
+        }
+      },
+      "nearest_point_in_other_front_at_pct": {
+        "gp": 16.04,
+        "gbdt": 10.565000000000001
+      }
+    }
+  }
+}
