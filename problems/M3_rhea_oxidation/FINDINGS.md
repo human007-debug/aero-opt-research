@@ -28,7 +28,7 @@ Only **10 alloys** have both a single-phase BCC compression strength and oxidati
 oxidation-tested alloy is **23 at.%** away from the nearest strength-tested alloy. Any claim of an alloy
 that is optimal for both properties rests on at least one surrogate extrapolating.
 
-## 3. Random-row validation overstates accuracy; flexible models generalise worst
+## 3. Oxidation model accuracy depends on distance from known alloys (revised 2026-10-10)
 
 Oxidation surrogate, 5-fold CV, 3 repeats (`data/oxidation_validation.md`). R² on log10 mass gain:
 
@@ -38,10 +38,28 @@ Oxidation surrogate, 5-fold CV, 3 repeats (`data/oxidation_validation.md`). R² 
 | unseen alloy | **0.64** (90% coverage 0.88) | 0.55 | 0.61 (coverage 0.81) |
 | unseen source paper | **0.56** | 0.45 | 0.40 |
 
-Rows of one alloy (different T, t) land in both training and test sets under a random split, so it
-measures interpolation within known alloys. The model ranking reverses for new alloys. Physics-motivated
-descriptors (scale-former / volatile-oxide / non-protective group sums, Cr×Ta) did not help any model.
-TODO: verify from source how Gorsse et al. (2025) grouped their cross-validation folds before comparing.
+What Gorsse et al. (2025) did (read from the open HAL version, hal-04746750): nested k-fold CV with
+shuffling over rows (4 outer, 5 inner folds, 25 repeats), MAE 0.43 in ln(Δm); plus 5 arc-melted alloys
+held out entirely, MAE 0.57 in ln. Their Fig. 4 R² 0.97 is the fit after retraining on all data. So they
+did test on unseen alloys, and their error there is lower than our grouped-CV average (0.97 ln for GBDT).
+
+Error vs distance from the held-out alloy to its nearest training alloy reconciles the two
+(`data/oxidation_error_vs_distance.json`, MAE in ln units, grouped CV):
+
+| Distance (at.%) | records | GBDT | Bayesian ridge |
+|---|---|---|---|
+| < 5 | 1206 | **0.66** | 0.77 |
+| 5–10 | 505 | **0.85** | 0.93 |
+| 10–15 | 304 | 1.13 | **0.94** |
+| 15–20 | 136 | 1.56 | **1.00** |
+| 20–30 | 312 | 1.36 | **1.27** |
+| > 30 | 96 | 2.79 | **1.17** |
+
+Close to known alloys GBDT is the better model, consistent with Gorsse et al.'s 0.57 on five test alloys
+from well-sampled families. Beyond ~10 at.% it degrades steeply while the linear model degrades slowly.
+Row-level CV (rows of one alloy on both sides of the split) measures the near-data regime only. For
+design, the model choice should depend on distance; the search's trust limit (13.2 at.%) sits near the
+crossover. Physics-motivated descriptors did not help any model.
 
 Strength surrogate (`data/strength_validation.md`), unseen alloy: GP on composition and T, R² 0.80
 (RMSE ×1.41), used in the search.

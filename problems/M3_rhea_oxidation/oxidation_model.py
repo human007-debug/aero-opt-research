@@ -182,6 +182,31 @@ def write_report(res: dict, path_md: Path):
     path_md.write_text("\n".join(lines) + "\n")
 
 
+def error_vs_distance(models=("bayes_ridge", "gbdt"), repeats: int = 3, k: int = 5,
+                      bins=(0, 5, 10, 15, 20, 30, 100)) -> dict:
+    """Held-out-alloy absolute error (ln units, as Gorsse et al. 2025 report) binned by the distance
+    (at.% moved) from each held-out alloy to its nearest training alloy."""
+    df = load()
+    g, C = alloy_groups(df), df[ELEMENTS].to_numpy() / 100
+    X, y = xy(df, "base")
+    out = {"bins_at_pct": list(bins), "models": {}}
+    for name in models:
+        err, dist = [], []
+        for rep in range(repeats):
+            for tr, te in group_folds(g, k, np.random.default_rng(rep)):
+                m = make_model(name, X.shape[1]).fit(X[tr], y[tr])
+                U = np.unique(C[tr], axis=0)
+                dist.append(np.abs(C[te][:, None, :] - U[None]).sum(-1).min(1) * 50)
+                err.append(np.abs(m.predict(X[te]) - y[te]) * np.log(10))
+        err, dist = np.concatenate(err), np.concatenate(dist)
+        rows = []
+        for lo, hi in zip(bins[:-1], bins[1:]):
+            sel = (dist >= lo) & (dist < hi)
+            rows.append({"lo": lo, "hi": hi, "n": int(sel.sum()), "mae_ln": float(err[sel].mean()) if sel.any() else None})
+        out["models"][name] = {"mae_ln_overall": float(err.mean()), "by_distance": rows}
+    return out
+
+
 def fit(model: str = "bayes_ridge", kind: str = "base", df: pd.DataFrame | None = None):
     """Fit on the full cleaned dataset; returns (model, kind)."""
     df = load() if df is None else df
@@ -190,6 +215,12 @@ def fit(model: str = "bayes_ridge", kind: str = "base", df: pd.DataFrame | None 
 
 
 if __name__ == "__main__":
+    import sys
+    if "--distance" in sys.argv:
+        r = error_vs_distance()
+        (HERE / "data" / "oxidation_error_vs_distance.json").write_text(json.dumps(r, indent=2))
+        print(json.dumps(r, indent=1))
+        raise SystemExit
     res = validation_study()
     (HERE / "data" / "oxidation_validation.json").write_text(json.dumps(res, indent=2))
     write_report(res, HERE / "data" / "oxidation_validation.md")
