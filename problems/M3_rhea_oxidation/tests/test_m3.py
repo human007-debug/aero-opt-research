@@ -73,6 +73,48 @@ def test_pure_element_has_no_solid_solution_strength():
     assert pr.strength({"W": 1.0}, 300)["sigma_y_MPa"] == pytest.approx(0.0, abs=1e-9)
 
 
+# Benchmark: Maresca & Curtin (2020), arXiv:1901.02100v3. Table 2 (p.16) "Vegard/ROM" rows.
+TABLE2 = [  # composition Mo, Nb, Ta, V, W (at.%), a_bcc (A), C11, C12, C44 (GPa)
+    ([20, 20, 20, 20, 20], 3.192, 346.8, 157.7, 90.5),
+    ([25, 25, 25, 0, 25], 3.228, 375.5, 167.3, 101.6),
+    ([21.7, 20.6, 15.6, 21, 21.1], 3.185, 355.6, 156.7, 92.4),
+    ([25.6, 22.7, 24.4, 0, 27.3], 3.224, 385.1, 167.1, 106),
+    ([24.9, 25.8, 26.6, 22.7, 0], 3.205, 300.8, 146.6, 72.8),
+    ([0, 28.5, 29.65, 20.67, 21.18], 3.22, 310.3, 152.5, 78.2),
+]
+
+
+@pytest.mark.parametrize("row", TABLE2)
+def test_elemental_inputs_reproduce_table2(row):
+    comp, a, C11, C12, C44 = row
+    c = dict(zip(pr.MC_ELEMENTS, comp))
+    cc, V, c11, c12, c44 = pr.mc_inputs(c)
+    assert cc @ c11 == pytest.approx(C11, abs=1.5) and cc @ c12 == pytest.approx(C12, abs=1.5)
+    assert cc @ c44 == pytest.approx(C44, abs=1.0)
+    assert pr.strength(c, 300)["a_A"] == pytest.approx(a, abs=0.003)
+
+
+@pytest.mark.parametrize("comp,tau0_GPa,dEb_eV", [
+    # Fig. 7 (p.19), reduced-theory values read from the figure (about +-0.01 GPa, +-0.05 eV)
+    ({"Mo": 25.6, "Nb": 22.7, "Ta": 24.4, "W": 27.3}, 0.445, 2.70),
+    ({"Mo": 21.7, "Nb": 20.6, "Ta": 15.6, "V": 21, "W": 21.1}, 0.61, 2.87),
+])
+def test_reduced_model_matches_paper_fig7(comp, tau0_GPa, dEb_eV):
+    r = pr.strength(comp, 300)
+    assert r["tau_y0_MPa"] / 1000 == pytest.approx(tau0_GPa, rel=0.05)
+    assert r["dEb_eV"] == pytest.approx(dEb_eV, rel=0.05)
+
+
+@pytest.mark.parametrize("comp,sigma_1873_GPa", [
+    # Fig. 1 (p.2), full-theory curves at ~1873 K read from the figure; the paper reports ~10% scatter
+    # between reduced and full theory (p.19), so 15% is allowed.
+    ({"Mo": 25.6, "Nb": 22.7, "Ta": 24.4, "W": 27.3}, 0.225),
+    ({"Mo": 21.7, "Nb": 20.6, "Ta": 15.6, "V": 21, "W": 21.1}, 0.39),
+])
+def test_high_temperature_strength_matches_paper_fig1(comp, sigma_1873_GPa):
+    assert pr.strength(comp, 1873)["sigma_y_MPa"] / 1000 == pytest.approx(sigma_1873_GPa, rel=0.15)
+
+
 def test_strength_decreases_with_temperature():
     c = {"Nb": 1, "Mo": 1, "Ta": 1, "W": 1}
     s = [pr.strength(c, T)["sigma_y_MPa"] for T in (300, 800, 1300, 1800)]
@@ -83,9 +125,10 @@ def test_mo_shear_modulus_uses_consistent_value():
     assert pr.elements()["Mo"]["shear_modulus_GPa_used"] == pytest.approx(125.57, abs=0.1)
 
 
-def test_strength_model_rejects_si():
+@pytest.mark.parametrize("el", ["Si", "Ti", "Al", "Cr"])
+def test_strength_model_rejects_elements_outside_validated_family(el):
     with pytest.raises(ValueError):
-        pr.strength({"Nb": 0.9, "Si": 0.1}, 300)
+        pr.strength({"Nb": 0.9, el: 0.1}, 300)
 
 
 # ---------------------------------------------------------------- search problem

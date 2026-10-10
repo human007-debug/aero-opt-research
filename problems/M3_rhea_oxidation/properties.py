@@ -3,23 +3,20 @@
 Density (ideal mixing of atomic volumes):
     rho = sum c_i M_i / (N_A sum c_i V_i)
 
-Yield strength: Maresca & Curtin edge-dislocation model for BCC high-entropy alloys,
-F. Maresca and W. A. Curtin, Acta Materialia 182 (2020) 235-249 (arXiv:1901.02100). Reduced form:
-    misfit  = sum c_n dV_n^2 / b^6,  dV_n = V_n - V_bar,  V_bar = sum c_n V_n
+Yield strength: reduced (elasticity-based) edge-dislocation model of
+F. Maresca and W. A. Curtin, Acta Materialia 182 (2020) 235-249; arXiv:1901.02100v3 (verified against v3):
+    misfit  = sum c_n dV_n^2 / b^6,  dV_n = V_n - V_bar,  V_bar = sum c_n V_n  (Vegard)        p.19
     a = (2 V_bar)^(1/3), b = (sqrt(3)/2) a
-    P = (1 + nu) / (1 - nu)
-    tau_y0 = A_tau * alpha^(-1/3) * mu * P^(4/3) * misfit^(2/3)
-    dE_b   = A_E   * alpha^( 1/3) * mu * b^3 * P^(2/3) * misfit^(1/3)
-    x = k T / dE_b * ln(rate0 / rate)
-    tau_y = tau_y0 (1 - x^(2/3))       if that ratio >= 0.5   (low temperature / high stress)
-          = tau_y0 exp(-x / 0.55)       otherwise              (high temperature / low stress)
-    sigma_y = M tau_y
-Alloy mu and nu are composition averages of the elemental isotropic values (data/elements.yaml).
-
-ALL MODEL CONSTANTS BELOW ARE UNVERIFIED (written from memory; the paper could not be retrieved from this
-environment). TODO: verify from source: A_tau, A_E, alpha, M, rate0, the 0.5 switch and 0.55 factor, and how
-the original work averages elastic constants and chooses volumes for non-BCC elements. Until then, compare
-this model with experiments as a calibration check only, not as a validated benchmark.
+    C_ij alloy = sum c_n C_ij^n (rule of mixtures);  mu = sqrt(C44 (C11 - C12) / 2),
+    B = (C11 + 2 C12) / 3,  nu = (3B - 2 mu) / (2 (3B + mu))                                    p.12, p.19
+    tau_y0 = 0.040 alpha^(-1/3) mu P^(4/3) misfit^(2/3),  P = (1 + nu)/(1 - nu)                p.19
+    dE_b   = 2.00  alpha^( 1/3) mu b^3 P^(2/3) misfit^(1/3)                                   p.19
+    tau_y = tau_y0 [1 - (kT/dE_b ln(rate0/rate))^(2/3)]   if tau_y/tau_y0 >= 0.5               Eq. 11
+          = tau_y0 exp(-(1/0.55) kT/dE_b ln(rate0/rate))   otherwise                           Eq. 12
+    rate0 = 1e4 /s (p.10), alpha = 1/12 (p.12), sigma_y = M tau_y with M = 3.067 (p.17).
+Elemental C_ij and BCC volumes for Mo, Nb, Ta, V, W are recovered from the paper's Table 2
+(data/elements.yaml, block maresca_curtin_2020). The paper validates the model only for this family, so
+strength() refuses other elements.
 """
 from __future__ import annotations
 
@@ -33,11 +30,12 @@ HERE = Path(__file__).parent
 K_B = 1.380649e-23
 N_A = 6.02214076e23
 
-MC_PARAMS = {  # TODO: verify from source (Maresca & Curtin 2020)
-    "A_tau": 0.040, "A_E": 2.00, "alpha": 0.123, "taylor_M": 3.06, "rate0": 1.0e4,
+MC_PARAMS = {  # verified: Maresca & Curtin (2020), arXiv:1901.02100v3, pp.10, 12, 17, 19
+    "A_tau": 0.040, "A_E": 2.00, "alpha": 1 / 12, "taylor_M": 3.067, "rate0": 1.0e4,
     "switch_ratio": 0.5, "high_T_factor": 0.55,
 }
-STRENGTH_ELEMENTS = ["Al", "Cr", "Hf", "Mo", "Nb", "Ta", "Ti", "V", "W", "Zr"]  # Si excluded
+STRENGTH_ELEMENTS = ["Al", "Cr", "Hf", "Mo", "Nb", "Ta", "Ti", "V", "W", "Zr"]  # design space of M3X (Si excluded)
+MC_ELEMENTS = ["Mo", "Nb", "Ta", "V", "W"]  # validated family of the physics strength model
 
 
 @lru_cache(maxsize=1)
@@ -60,20 +58,30 @@ def density(comp: dict[str, float]) -> float:
     return float((c @ M) / N_A / ((c @ V) * 1e-24))
 
 
+def mc_inputs(comp: dict[str, float]):
+    mc = elements()["maresca_curtin_2020"]
+    keys = [k for k, v in comp.items() if v > 0]
+    c = np.array([comp[k] for k in keys], float)
+    c = c / c.sum()
+    get = lambda q: np.array([mc[k][q] for k in keys], float)
+    return c, get("V_bcc"), get("C11"), get("C12"), get("C44")
+
+
 def strength(comp: dict[str, float], T_K: float, strain_rate: float = 1e-3, params: dict | None = None) -> dict:
-    """Maresca-Curtin edge model. Returns sigma_y (MPa) and intermediate quantities."""
+    """Reduced Maresca-Curtin edge model. Returns sigma_y (MPa) and intermediate quantities."""
     p = {**MC_PARAMS, **(params or {})}
-    if any(k not in STRENGTH_ELEMENTS for k, v in comp.items() if v > 0):
-        raise ValueError(f"strength model covers {STRENGTH_ELEMENTS} only")
-    keys, c, V = _arr(comp, "atomic_volume_A3")
-    _, _, mu_i = _arr(comp, "shear_modulus_GPa_used")
-    _, _, nu_i = _arr(comp, "poissons_ratio")
+    if any(k not in MC_ELEMENTS for k, v in comp.items() if v > 0):
+        raise ValueError(f"Maresca-Curtin inputs available for {MC_ELEMENTS} only")
+    c, V, C11, C12, C44 = mc_inputs(comp)
     V = V * 1e-30  # m^3
     Vbar = c @ V
     misfit_V2 = c @ (V - Vbar) ** 2
     a = (2 * Vbar) ** (1 / 3)
     b = np.sqrt(3) / 2 * a
-    mu, nu = (c @ mu_i) * 1e9, c @ nu_i
+    c11, c12, c44 = (c @ C11) * 1e9, (c @ C12) * 1e9, (c @ C44) * 1e9
+    mu = np.sqrt(0.5 * c44 * (c11 - c12))
+    B = (c11 + 2 * c12) / 3
+    nu = (3 * B - 2 * mu) / (2 * (3 * B + mu))
     P = (1 + nu) / (1 - nu)
     m = misfit_V2 / b**6
     tau0 = p["A_tau"] * p["alpha"] ** (-1 / 3) * mu * P ** (4 / 3) * m ** (2 / 3)
@@ -83,4 +91,5 @@ def strength(comp: dict[str, float], T_K: float, strain_rate: float = 1e-3, para
     ratio = low if low >= p["switch_ratio"] else np.exp(-x / p["high_T_factor"])
     return {"sigma_y_MPa": float(p["taylor_M"] * tau0 * ratio / 1e6), "tau_y0_MPa": float(tau0 / 1e6),
             "dEb_eV": float(dEb / 1.602176634e-19), "delta_V_rms_A3": float(np.sqrt(misfit_V2) * 1e30),
-            "mu_GPa": float(mu / 1e9), "nu": float(nu), "b_A": float(b * 1e10), "regime": "low_T" if low >= p["switch_ratio"] else "high_T"}
+            "mu_GPa": float(mu / 1e9), "nu": float(nu), "b_A": float(b * 1e10), "a_A": float(a * 1e10),
+            "regime": "low_T" if low >= p["switch_ratio"] else "high_T"}

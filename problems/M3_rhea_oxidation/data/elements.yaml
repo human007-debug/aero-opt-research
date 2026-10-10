@@ -8,7 +8,7 @@
 # the other elements whose listed and derived values agree. The derived value is used.
 # Si has no listed nu or G, and its stable form is not a metal; it is excluded from the strength model.
 # Atomic volumes are those of each element's stable structure at room temperature (hcp for Ti, Zr, Hf; fcc for
-# Al; diamond for Si). TODO: verify from source which volumes Maresca & Curtin (2020) use for Al, Ti, Zr, Hf.
+# Al; diamond for Si). They are used for density only; the strength model uses the maresca_curtin_2020 block.
 Al:
   atomic_mass: 26.9815386
   molar_volume_cm3: 10.0
@@ -142,3 +142,15 @@ Zr:
   shear_modulus_GPa_used: 33.0
   shear_modulus_note: 'listed G (E, nu give 25.37; unresolved. TODO: verify from source)'
   shear_modulus_from_E_nu_GPa: 25.37
+# ---------------------------------------------------------------------------------------------------------
+# Maresca & Curtin (2020) inputs for the Mo-Nb-Ta-V-W family, recovered from the paper itself:
+# F. Maresca, W. A. Curtin, Acta Mater. 182 (2020) 235-249; arXiv:1901.02100v3, Table 2 (p.16), rows
+# "Vegard/ROM". Those rows are rule-of-mixtures alloy values, so elemental C11, C12, C44 follow from a
+# least-squares solve over the six alloys (max residual 1.2 GPa, i.e. rounding) and elemental BCC atomic
+# volumes from V_n = a_bcc^3 / 2 + dV_n (spread across alloys <= 0.29 A^3). Units: GPa, A^3.
+maresca_curtin_2020:
+  Mo: {C11: 457.9, C12: 171.7, C44: 128.5, V_bcc: 15.546}
+  Nb: {C11: 280.5, C12: 131.9, C44: 37.1, V_bcc: 17.956}
+  Ta: {C11: 231.8, C12: 161.0, C44: 77.9, V_bcc: 18.011}
+  V: {C11: 231.6, C12: 119.6, C44: 45.9, V_bcc: 13.959}
+  W: {C11: 536.4, C12: 201.0, C44: 165.2, V_bcc: 15.746}

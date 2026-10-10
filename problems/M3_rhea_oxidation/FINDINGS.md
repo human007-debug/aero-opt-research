@@ -44,11 +44,20 @@ descriptors (scale-former / volatile-oxide / non-protective group sums, Cr×Ta) 
 TODO: verify from source how Gorsse et al. (2025) grouped their cross-validation folds before comparing.
 
 Strength surrogate (`data/strength_validation.md`), unseen alloy: GP on composition and T, R² 0.80
-(RMSE ×1.41). The Maresca–Curtin edge model as implemented here gives R² < 0 and lowers accuracy when
-added as a feature. It fails systematically for low-misfit alloys (NbTaTi: 7 MPa predicted vs 573 MPa
-measured), Al-bearing alloys (×0.5) and Ti–V–Zr–Hf alloys above 1000 °C (over-predicted). Its constants
-are unverified (paper not retrievable from this environment), so this is not yet a conclusion about the
-model.
+(RMSE ×1.41), used in the search.
+
+Physics model (corrected 2026-10-10). The reduced Maresca–Curtin edge model is now checked against the paper
+(arXiv:1901.02100v3): constants, α = 1/12 (not 0.123 as first written from memory), M = 3.067, and alloy
+elastic constants from rule-of-mixtures single-crystal C_ij. Elemental C_ij and BCC volumes for Mo, Nb, Ta,
+V, W are recovered from the paper's Table 2 (residual ≤ 1.2 GPa). With these inputs the code reproduces the
+paper's reduced-theory τ_y0 and ΔE_b (Fig. 7) within 5% and its 1873 K strengths (Fig. 1) within 15%
+(tests in `tests/test_m3.py`). Against the 21 MPEA records for Mo–Nb–Ta–V–W alloys, with no fitting:
+RMSE ×1.32 (log10 0.119), Spearman 0.97, under-predicting at high T as the paper itself reports. The GP
+trained on all other alloys is more accurate on those records (log10 0.085), but this is 4 alloys.
+**Retraction:** the earlier statement that the physics model gives R² < 0 came from wrong inputs (α and
+polycrystal moduli), not from the model. The real limitation is scope: the paper provides validated inputs
+only for Mo–Nb–Ta–V–W, while oxidation-resistant designs need Al, Cr and Ti, so the physics model cannot be
+used across the M3X design space.
 
 Phase classifier (`data/phase_validation.md`), unseen formula: ROC AUC 0.84, Brier 0.144 (base rate 0.218).
 
