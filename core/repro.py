@@ -9,7 +9,7 @@ from importlib import metadata
 
 import numpy as np
 
-TRACKED_PACKAGES = ["numpy", "scipy", "pyyaml", "pymoo", "torch", "botorch", "anthropic"]
+TRACKED_PACKAGES = ["numpy", "scipy", "pyyaml", "pymoo", "torch", "botorch", "anthropic", "scikit-learn", "pandas", "matplotlib"]
 
 
 def seed_everything(seed: int) -> np.random.Generator:

@@ -137,7 +137,7 @@ alloy ≤ 13.2 at.%. 20 000 evaluations × 10 seeds per optimizer.
 ## 4b. The predicted front depends on the surrogate (optimiser's curse)
 
 Same search with three oxidation surrogates (`surrogate_dependence.py`, `data/surrogate_dependence.json`,
-`runs/surrogate_dependence.png`). On the GP-driven front (654 points), GBDT predicts ≥3× higher
+`runs/surrogate_dependence.png`; per-seed numbers with ranges in §7). On the GP-driven front (654 points), GBDT predicts ≥3× higher
 mass gain for 93% of points and Bayesian ridge for 98% (median disagreement
 ×4.3 and ×5.6); the rank correlation along the front with GBDT is 0.07. The fronts found
 with the other surrogates are scored much more consistently by the remaining models. An optimiser
@@ -179,3 +179,52 @@ public oxidation datasets.
 4. Add a CALPHAD or literature-based phase check for the shortlisted candidates.
 5. Compare LLM-guided search with NSGA-II here at equal budget (the trust-region constraints make random
    proposals almost always infeasible, which favours methods that use domain knowledge).
+
+## 7. Confidence intervals (added 2026-10-12; `paper_stats.py`, `data/paper_stats.json`)
+
+Clustered bootstrap, 2000 draws, 95% percentile intervals. Resampling unit: alloy (row and alloy splits),
+source paper (source split), composition (external test), curve (digitisation agreement). Out-of-fold
+predictions: 3 repeats × 5 folds (`data/paper_oof.npz`). Seed 20261012. Figures: `papers/rhea_ml_validation/figures/`.
+
+**R² (log mass gain).**
+
+| Scheme | GP | GBDT | Bayesian ridge |
+|---|---|---|---|
+| Random rows | 0.92 [0.89, 0.94] | 0.92 [0.89, 0.94] | 0.72 [0.65, 0.77] |
+| Unseen alloy | 0.58 [0.31, 0.78] | 0.56 [0.40, 0.70] | 0.65 [0.52, 0.74] |
+| Unseen source paper | 0.42 [0.09, 0.61] | 0.44 [0.23, 0.57] | 0.56 [0.28, 0.70] |
+| Independent (RefOxDB, 200 pts / 30 compositions) | 0.24 [−0.13, 0.49] | 0.29 [−0.21, 0.55] | −0.49 [−1.94, 0.35] |
+
+**Model ranking (paired bootstrap, P(A has lower ln-MAE than B)).**
+- Random rows: GP and GBDT beat ridge with P = 1.00; GP vs GBDT undecided (P(GBDT beats GP) = 0.33).
+- Unseen alloy: GP is best on MAE (beats ridge P = 0.80, GBDT P = 0.97), but ridge is best on R². The
+  ranking depends on the metric.
+- Unseen source paper: ridge is best on both metrics (beats GBDT P = 0.94, GP P = 0.79).
+- Independent data: ridge is worst (GP beats it P = 0.97, GBDT P = 0.99); GP vs GBDT undecided (0.27).
+So the strictest internal scheme (source split) would have chosen the model that is worst on independent
+data. The reversal is clear for GBDT vs ridge; for GP vs ridge it is suggestive (0.79 internally).
+
+**Calibration (90% interval coverage).** GP: rows 0.92 [0.89, 0.95], alloy 0.79 [0.72, 0.85], source
+0.79 [0.68, 0.90], independent 0.94 [0.89, 0.99]. Ridge: independent 0.62 [0.47, 0.78] (overconfident).
+The GP's calibration factor (1.70, from grouped CV) carries over to independent data.
+
+**Error vs distance (ln-MAE, nearest-alloy distance in at.%).**
+- Independent data: < 5 at.% vs > 20 at.%: GP 0.38 [0.12, 0.61] → 1.57 [1.19, 2.03]; GBDT
+  0.47 [0.24, 0.65] → 1.57 [1.06, 2.24]; ridge 0.74 [0.45, 1.00] → 2.26 [1.42, 3.25]. Intervals do not
+  overlap for any model (3–4× increase). The 5–10 at.% bin has only 5 points; do not interpret it.
+- Alloy-grouped CV: < 5 vs 20–30 at.%: GP 0.47 [0.38, 0.57] → 1.05 [0.77, 1.27]; GBDT 0.68 [0.55, 0.82]
+  → 1.58 [1.03, 1.99] (no overlap); ridge 0.78 [0.68, 0.89] → 1.27 [0.82, 2.14] (overlap). Bins above
+  10 at.% have few alloys and wide intervals. Internally the effect is clear for GP and GBDT only.
+
+**Digitisation agreement (172 matched points, 58 curves).** Median |Δlog10| = 0.009 [0.006, 0.023];
+fraction differing by more than ×2 = 2.3% [0, 6.0%].
+
+**Optimiser's curse, per seed (10 seeds; replaces the pooled 93%/98% in §4b).** On GP-driven fronts the
+fraction of points that GBDT predicts ≥3× worse: mean 83%, range 3–99%; ridge: mean 86%, range 0–100%.
+On GBDT-driven fronts: 13% (GP) and 24% (ridge); on ridge-driven fronts: 28% (GP) and 17% (GBDT). The
+effect is strongest for the GP and is large on most seeds, but a few seeds show almost none, so it should
+be reported as a distribution, not one number.
+
+**Corrections to earlier sections.** §3/§3b: "internal rankings do not transfer" is now stated as above
+(metric-dependent internally; source split picks the externally worst model). §4b: pooled 93%/98% replaced
+by per-seed mean and range.
