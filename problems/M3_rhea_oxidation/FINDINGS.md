@@ -111,7 +111,10 @@ trained on all other alloys is more accurate on those records (log10 0.085), but
 **Retraction:** the earlier statement that the physics model gives R² < 0 came from wrong inputs (α and
 polycrystal moduli), not from the model. The real limitation is scope: the paper provides validated inputs
 only for Mo–Nb–Ta–V–W, while oxidation-resistant designs need Al, Cr and Ti, so the physics model cannot be
-used across the M3X design space.
+used across the M3X design space. (Refined 2026-10-12: the theory itself is supported beyond Mo–Nb–Ta–V–W. Lee et al., Nat. Commun. 12
+(2021) 5474, show edge control in NbTaTiV and CrMoNbV; Baruffi et al., MRS Commun. 12 (2022) 1111, find the
+edge theory agrees with experiment only in non-dilute alloys with large misfit. Our restriction is to the
+elements whose inputs we have verified; Al-containing oxidation-resistant alloys remain an extrapolation.)
 
 Phase classifier (`data/phase_validation.md`), unseen formula: ROC AUC 0.84, Brier 0.144 (base rate 0.218).
 

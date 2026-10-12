@@ -1,0 +1,174 @@
+% Related work. Citations: refs.bib (every entry checked by verify_refs.py).
+% Source notes for each statement: related_work_notes.md.
+\section{Related work}
+\label{sec:related}
+
+\subsection{Oxidation of refractory complex concentrated alloys}
+
+Refractory high-entropy and complex concentrated alloys (RHEAs/RCCAs) keep much of their strength
+to very high temperatures \citep{senkov2018review,senkov2019high}, but most of them oxidise as
+badly as the refractory metals they contain: they pest, spall, lose mass by forming volatile oxides,
+or oxidise completely \citep{gorr2021review}. The ductile Hf--Nb--Ta--Ti--Zr alloys, for example,
+pest between 600 and 1000\,\textdegree C \citep{sheikh2018pesting}. Protective behaviour is found in
+narrow composition windows. Alloys of the Al--Cr--Mo--Ta--Ti family form a slow-growing CrTaO$_4$
+layer \citep{gorr2020crtao4,lo2019crtao4}. Replacing Ta by Nb gives porous, spalling scales
+\citep{muller2019mechanism}, and the Al content decides whether a dense CrTaO$_4$ layer forms or
+volatilisation of MoO$_3$ and CrO$_3$ dominates \citep{schellert2021al}. Two consequences matter
+for data-driven models. First, the property changes sharply with composition, so the accuracy of a
+model should depend on how close a query alloy is to measured alloys. Second, the usual target,
+net specific mass change, combines scale growth with volatilisation and spallation, and its kinetics
+change with exposure time \citep{lo2019crtao4}. Values from different sources are therefore noisy
+and not always comparable.
+
+\subsection{Public data}
+
+Two public compilations of RCCA oxidation data were built independently. The dataset of
+\citet{lin2026dataset} (886 records from 62 publications and in-house tests; the data used by
+\citet{gorsse2025ml}) was extracted independently by two curators, conflicts were traced back to the
+sources, and suspected factor-of-ten errors from unit conversion or transcription were checked and
+removed when they could not be confirmed. RefOxDB \citep{mishra2024refoxdb} holds 407 mass-change
+curves digitised from 68 sources. Its authors note that units of mass gain vary between papers, and
+they find that the kinetic law chosen by the original authors differs from the best-supported law
+in 71\% of the curves. Both groups digitised plotted data with WebPlotDigitizer
+\citep{rohatgi2018webplotdigitizer}. Studies in other fields show that two people digitising the same
+figure agree closely \citep{drevon2017intercoder}, that reliability depends on the figure rather than
+on the program \citep{moeyaert2016reliability}, and that close agreement between people can coexist
+with errors of up to 30\% against the true values \citep{burda2017estimating}. Automated extraction
+of materials data from text reaches a precision of 73\% \citep{court2018auto} to about 90\%
+\citep{polak2024extracting}. We did not find a study that compares two independent digitisations of
+the same materials-property figures. Because the two oxidation compilations overlap in source papers,
+they make this comparison possible, and they also make a true external test possible: a model fitted
+to one compilation can be tested on the alloys that only the other contains.
+
+High-temperature strength data come from separate compilations
+\citep{couzinie2018comprehensive,gorsse2018database,borg2020expanded}, which contain no oxidation
+data. \citet{borg2020expanded} also corrected errors in the earlier compilations, a reminder that
+curated datasets need auditing.
+
+\subsection{Data-driven oxidation models for RCCAs}
+
+\citet{gorsse2025ml} trained gradient-boosted trees on the dataset of \citet{lin2026dataset} to predict
+specific mass gain from composition, temperature and time. They validated the model by nested k-fold
+cross-validation with shuffling over records, where a record is one combination of alloy,
+temperature and time, so records of the same alloy can fall in both the training and the test folds.
+They also tested five new alloys (25 records), for which the error was slightly higher than in
+cross-validation, and three designed Al--Cr--Mo--Ta--Ti alloys, whose measured mass gains were close
+to the targets. \citet{bejjipurapu2026descriptors} fitted a Gaussian process with oxidation-product
+descriptors to 77 compositions from RefOxDB (24\,h at 900--1000\,\textdegree C). The test error on a
+random 20\% split was 5.78\,mg/cm$^2$, while repeated five-fold cross-validation gave about
+11\,mg/cm$^2$, which shows how much a single split can vary at this data size. The same group then ran
+an experimental active-learning campaign from 81 literature alloys and found two alumina-forming
+Al--Cr--Mo--Ti alloys with less than 1\,mg/cm$^2$ after 24\,h at 1000\,\textdegree C
+\citep{bejjipurapu2025active}. Their reported predictions also show how far the model could be wrong
+away from its data: several alloys predicted at 1--3\,mg/cm$^2$ gained 70--121\,mg/cm$^2$, and the two
+five-component alloys with the lowest predictions (0.79 and 0.93\,mg/cm$^2$) gained 4.8 and
+5.9\,mg/cm$^2$ \citep[SI Table 2]{bejjipurapu2025active}. Those alloys were chosen by expected
+improvement, which deliberately samples uncertain regions, so these misses are consistent with, but do
+not by themselves demonstrate, the selection bias discussed below. Data-driven oxidation models also
+exist for Ti alloys \citep{bhattacharya2020ti}, Ni-based superalloys \citep{kim2021ni}, NiCr alloys
+\citep{peng2021nicr}, several alloy classes together \citep{taylor2021ml} and Ni--Co--Cr--Al--Fe
+high-entropy alloys \citep{tan2025nicocralfe}. \citet{peng2021nicr} attribute their success to a
+consistent dataset from one laboratory, which the RCCA compilations are not.
+
+To our knowledge, no RCCA oxidation study groups validation folds by source publication or tests a
+model fitted to one compilation on the other.
+
+\subsection{Strength models and multi-property design}
+
+The edge-dislocation theory of \citet{maresca2020mechanistic} predicts the yield strength of BCC
+high-entropy alloys without fitted parameters. It reproduces the strength of MoNbTaW and MoNbTaVW
+up to 1900\,K, and its reduced form was used to screen the Mo--Nb--Ta--V--W family.
+\citet{lee2021strength} showed experimentally that edge dislocations also control the strength of
+NbTaTiV and CrMoNbV, and \citet{baruffi2022screw} found that the edge theory agrees with experiment
+only in non-dilute alloys with a sufficiently large misfit parameter; screw dislocations control
+strength otherwise. The theory is therefore supported for non-dilute, high-misfit BCC alloys, and
+using it for the Al-containing compositions that resist oxidation is an extrapolation.
+\citet{senkov2019high} related the loss of strength of single-phase BCC RCCAs to diffusion-controlled
+deformation, which starts at about 0.6\,$T_\mathrm{m}$, and found that multi-phase RCCAs lose strength
+rapidly above 1000\,\textdegree C; specific strength at 1000\,\textdegree C is therefore a demanding
+objective.
+
+Multi-property design of refractory alloys has combined the edge theory with phase, density, solidus
+and ductility constraints \citep{vela2023high}, fused the edge theory with the data of
+\citet{borg2020expanded} into a Bayesian strength model \citep{vela2023data}, optimised ductility
+indicators with Bayesian optimisation under learned constraints \citep{khatamsaz2022multi}, and added
+uncertainty quantification to strength--plasticity trade-offs \citep{giles2026yield}. Phase
+constraints in such searches usually come from classifiers whose cross-validated accuracy is
+moderate: 64--74\% for three phase classes \citep{huang2019machine} and 93\% for solid-solution
+formation \citep{pei2020machine}. None of these studies includes oxidation. \citet{gorsse2025ml}
+propose combining their oxidation model with strength and ductility models in a Pareto analysis,
+which is the use case examined here.
+
+\subsection{Validation beyond random splits}
+
+When data are clustered or redundant, random cross-validation overstates the error on new cases. This
+has been shown for ecological data \citep{roberts2017cross}, for compound activity prediction, where
+time splits match prospective performance better than random splits \citep{sheridan2013time}, and
+across machine-learning-based science generally, where leakage between training and test data
+affected hundreds of papers \citep{kapoor2023leakage}. In materials science, \citet{meredig2018can}
+introduced leave-one-cluster-out cross-validation, \citet{xiong2020evaluating} proposed forward
+cross-validation to measure extrapolation to extreme property values, and \citet{omee2024structure}
+showed that graph neural networks lose much of their accuracy under out-of-distribution splits.
+Large materials datasets are so redundant that most of their data can be removed with little effect on
+in-distribution accuracy, but not on out-of-distribution accuracy \citep{li2023exploiting}.
+\citet{afflerbach2022machine} grouped a multi-source experimental dataset by alloy system to validate
+models of the critical cooling rate of metallic glasses.
+
+Error grows with dissimilarity to the training data. This was first shown for compound activity
+models \citep{sheridan2004similarity}, and has since been used as an uncertainty measure
+\citep{janet2019quantitative} and to define domains of applicability \citep{sutton2020identifying,
+schultz2025general}; \citet{schultz2025general} found that high dissimilarity goes with large errors
+and unreliable uncertainty estimates. \citet{li2025probing} showed that many nominally
+out-of-distribution tests in materials science are in fact interpolation, which argues for measuring
+the distance to the training data directly instead of relying on the split label. Tests on new data
+are rarer. Models trained on the 2018 Materials Project degraded severely on compounds added by 2021
+\citep{li2023critical}, and medical imaging models validated internally performed worse at hospitals
+not seen in training \citep{zech2018variable}. Good regression metrics also do not guarantee good
+design decisions \citep{bartel2020critical,borg2023quantifying}. By contrast, models trained on
+computed energies of simple alloys transfer well to more complex high-entropy compositions
+\citep{li2024efficient}, which suggests that the data type matters. Most of this evidence comes from
+computed data or from other fields. Experimental data compiled from many papers add effects of the
+source, such as laboratory practice, units and digitisation, that a distance in composition space
+cannot detect.
+
+\subsection{Uncertainty and design under model error}
+
+A predictive interval is calibrated if it contains the true value as often as its level states
+\citep{kuleshov2018accurate}. Materials studies have proposed metrics for comparing uncertainty
+estimates \citep{tran2020methods} and shown that rescaling the spread of an ensemble on held-out data
+improves calibration \citep{palmer2022calibration}; for molecular properties no uncertainty method was
+best across datasets \citep{hirschfeld2020uncertainty}. These studies check calibration on held-out
+splits of the same dataset. The calibration factor used here is fitted in the same way, on grouped
+folds, and is then tested on the independent compilation.
+
+Selecting the best of many candidates by their estimated value makes the selected candidate's estimate
+too optimistic on average, even when each estimate is unbiased: the optimiser's curse
+\citep{smith2006optimizer}. In model-based design the same effect appears as an optimiser finding
+inputs where the model is wrong in its favour, and proposed remedies keep the search near the training
+data \citep{brookes2019conditioning}, retrain the model as the search moves \citep{fannjiang2020autofocused},
+or fit models that are conservative away from the data \citep{trabucco2021conservative}. Trust regions
+in Bayesian optimisation \citep{eriksson2019scalable} serve a different purpose: they make the search
+efficient while new evaluations arrive. The trust region used here is a fixed constraint on distance to
+the data and on predicted uncertainty, applied in an offline setting with no new measurements. In
+alloy discovery, \citet{ren2018accelerated} found that an initial model predicted metallic-glass
+formation in a new ternary system in good qualitative agreement with experiment but with quantitative
+errors in composition, and that retraining on these discrepancies improved its accuracy.
+
+Confidence intervals in this work resample whole alloys, source papers or compositions, because records
+within these groups are not independent; the cluster bootstrap is consistent for such data
+\citep{field2007bootstrapping}, but inference can be unreliable when the number of clusters is small
+\citep{cameron2008bootstrap}.
+
+\subsection{Contribution relative to prior work}
+
+Compared with the work above, this paper
+(i) audits the two public RCCA oxidation compilations against each other, including a $\times$100 unit
+conflict that is visible only when the two are compared;
+(ii) measures how accuracy depends on composition distance to the training alloys, both in grouped
+cross-validation and on an independently compiled dataset;
+(iii) shows, with bootstrap confidence intervals, how the estimated accuracy and the model ranking change
+from record-level to alloy-level, source-level and external validation;
+(iv) shows that strength and oxidation data share very few alloys, so joint design extrapolates; and
+(v) measures how strongly the optimum found with one surrogate depends on that surrogate.
+The general principles are known; the contribution is to quantify them for an experimental,
+literature-compiled alloy property where design decisions depend on them.
